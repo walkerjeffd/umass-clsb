@@ -83,3 +83,28 @@ Copy `r/config.template.json` to `r/config.json` and fill out entries.
 cp r/config.template.json r/config.json
 nano r/config.json
 ``` 
+
+## Database
+
+Create a new database and set up schema:
+
+```
+createdb clsb
+psql -d clsb -f db/schema.db
+```
+
+### Import Crossings
+
+First, run `r/import-crossings.R` to reformat crossings file, select final columns, and save to csv.
+
+```
+cd r
+Rscript import-crossings.R
+```
+
+Then run the `import/crossings.sh` bash script to populate the `crossings` table in the database.
+
+```
+cd db/import
+./crossings.sh ../../r/csv/crossings.csv
+```
