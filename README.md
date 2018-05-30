@@ -50,7 +50,7 @@ PROJCS["NAD_1983_Albers",
 
 ## Model Code
 
-Outline
+### Algorithm
 
 ```txt
 graph.linkages
@@ -61,8 +61,12 @@ graph.linkages
     graph.kernel.spread
   graph.kernel
     graph.kernel.spread
-
-Sample call: 
-  culv <- data.frame(read.csv('d:/clsb/culv.csv'))
-  graph.linkages(culv, source = 'd:/clsb/tiles/')
 ```
+
+Each function is stored within its own R script i nthe `r/functions/` directory.
+
+The `r/load-functions.R` script will load all functions are once (requires `cwd = r/`).
+
+### Demo Calculation
+
+Run the `r/demo.R` code line-by-line.

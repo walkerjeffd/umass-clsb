@@ -1,7 +1,7 @@
 # run the demo
 
 # load functions
-source("functions.R")
+source("load-functions.R")
 
 # load culvert list
 culv <- data.frame(read.csv("demo/culv.csv"))
