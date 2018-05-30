@@ -74,3 +74,12 @@ The `r/load-functions.R` script will load all functions are once (requires `cwd 
 ### Demo Calculation
 
 Run the `r/demo.R` code line-by-line.
+
+### Configuration
+
+Copy `r/config.template.json` to `r/config.json` and fill out entries.
+
+```bash
+cp r/config.template.json r/config.json
+nano r/config.json
+``` 

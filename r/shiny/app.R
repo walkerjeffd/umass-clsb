@@ -1,4 +1,7 @@
 library(shiny)
+library(jsonlite)
+
+config <- read_json("../config.json")
 
 for (f in list.files(path = "../functions")) {
   source(file.path("../functions", f))
@@ -6,36 +9,32 @@ for (f in list.files(path = "../functions")) {
 
 culv <- read.csv("../demo/culv.csv")
 
-# Define UI for app that draws a histogram ----
 ui <- fluidPage(
   titlePanel("Critical Linkages Scenario Builder"),
-
   sidebarLayout(
     sidebarPanel(
-      sliderInput(inputId = "n_culv",
-                  label = "Number of crossings:",
-                  min = 1,
-                  max = nrow(culv),
-                  step = 1,
-                  value = nrow(culv))
-
+      sliderInput(
+        inputId = "n_culv",
+        label = "Number of crossings:",
+        min = 1,
+        max = nrow(culv),
+        step = 1,
+        value = nrow(culv)
+      )
     ),
-
-    # Main panel for displaying outputs ----
     mainPanel(
       verbatimTextOutput(outputId = "text")
     )
   )
 )
 
-# Define server logic required to draw a histogram ----
 server <- function(input, output) {
   culvSubset <- reactive({
     culv[1:input$n_culv, c("x", "y")]
   })
   output$text <- renderText({
     culv <- culvSubset()
-    x <- graph.linkages(culv, source = "~/Dropbox/SHEDS/critical-linkages/data/200/", chatter = FALSE)
+    x <- graph.linkages(culv, source = config$tiles$dir, chatter = FALSE)
     paste0(
       "N = ", nrow(culv), "\n",
       "Delta = ", x$results$delta, "\n",

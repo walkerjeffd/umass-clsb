@@ -1,5 +1,9 @@
 # development
 
+library(jsonlite)
+
+config <- read_json("config.json")
+
 # load functions
 source("load-functions.R")
 
@@ -7,4 +11,4 @@ source("load-functions.R")
 culv <- data.frame(read.csv("demo/culv.csv"))
 
 # compute linkages
-graph.linkages(culv, source = "~/Dropbox/SHEDS/critical-linkages/data/200/")
+graph.linkages(culv, source = config$tiles$dir)
