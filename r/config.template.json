@@ -1,5 +1,8 @@
 {
   "tiles": {
     "dir": ""
+  },
+  "crossings": {
+    "file": ""
   }
 }
