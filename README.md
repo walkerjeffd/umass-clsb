@@ -21,11 +21,15 @@ The web application is not currently live.
 
 ### Graph Tiles
 
-The graph tiles are stored in a series of RDS binary data files. Filenames are of the form: `graphXXXYYY.RDS` where `XXX` is the three digit row number and `YYY` is the three digit column number.
+The graph tiles are stored in a series of RDS binary data files.
+
+The filename for each tile is: `graphXXXYYY.RDS` where `XXX` is the three digit row number and `YYY` is the three digit column number.
+
+A list of all tiles including bounding box (xmin, xmax, ymin, ymax) is listed in the `graphtiles.txt` file.
 
 ### Stream Crossings
 
-The stream crossings are stored in a simple (tab-delimited?) text file: `link_crossings.txt`.
+The stream crossings are stored in a simple (tab-delimited) text file: `link_crossings.txt`.
 
 ### Geospatial Projection
 
