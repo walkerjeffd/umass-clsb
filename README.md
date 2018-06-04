@@ -19,6 +19,12 @@ The web application is not currently live.
 
 ## Datasets
 
+### HUC Boundaries
+
+- Download WBD dataset (`NATIONAL_WBD_GDB.zip`) from [USGS NHD website](https://nhd.usgs.gov/data.html)
+- Unzip `NATIONAL_WBD_GDB.zip`
+- Run `import/wbd-huc.sh` script
+
 ### Graph Tiles
 
 The graph tiles are stored in a series of RDS binary data files.
@@ -30,6 +36,26 @@ A list of all tiles including bounding box (xmin, xmax, ymin, ymax) is listed in
 ### Stream Crossings
 
 The stream crossings are stored in a simple (tab-delimited) text file: `link_crossings.txt`.
+
+#### Test Dataset
+
+Create test dataset of crossings within HUC8 01040002 (Lower Androscoggin)
+
+```sql
+COPY (
+  WITH cw AS (
+    SELECT
+      id,
+      c.geom AS geom,
+      ST_Transform(c.geom, 4326) AS geom_wgs84
+    FROM crossings c, wbdhu8 w
+    WHERE ST_Intersects(w.geom, c.geom)
+    AND w.huc8 = '01040002'
+  )
+  SELECT id, ST_X(geom) as x_coord, ST_Y(geom) as y_coord, ST_X(geom_wgs84) as lon, ST_Y(geom_wgs84) as lat
+  FROM cw
+) TO '/path/to/umass-clsb/r/csv/crossings-01040002.csv' WITH CSV HEADER;
+``` 
 
 ### Geospatial Projection
 
@@ -51,6 +77,7 @@ PROJCS["NAD_1983_Albers",
   PARAMETER["Latitude_Of_Origin",23.0],
   UNIT["Meter",1.0]]
 ```
+
 
 ## Model Code
 
