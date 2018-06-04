@@ -61,8 +61,8 @@
     z <- list(delta = sum(deltas), effect = sum(deltas * edges$value / (edges$length / cellsize)))
 
     elapsed <- proc.time()[3] - a
-    cat('\nTotal elapsed time = ', elapsed, ' sec\n', sep = '')
-    cat('\nTime spent reading tiles = ', round(100 * d$readtime / elapsed), '%\n', sep = '')
+    # cat('\nTotal elapsed time = ', elapsed, ' sec\n', sep = '')
+    # cat('\nTime spent reading tiles = ', round(100 * d$readtime / elapsed), '%\n', sep = '')
 
     if(write)
         kern2arc(nodes, cbind(edges, base, alt, deltas))
