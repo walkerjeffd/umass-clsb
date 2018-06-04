@@ -1,13 +1,13 @@
 library(shiny)
 library(jsonlite)
 
-config <- read_json("../config.json")
+config <- read_json("../../config.json")
 
-for (f in list.files(path = "../functions")) {
-  source(file.path("../functions", f))
+for (f in list.files(path = "../../functions")) {
+  source(file.path("../../functions", f))
 }
 
-culv <- read.csv("../demo/culv.csv")
+culv <- read.csv("../../demo/culv.csv")
 
 ui <- fluidPage(
   titlePanel("Critical Linkages Scenario Builder"),
