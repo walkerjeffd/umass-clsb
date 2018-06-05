@@ -4,5 +4,12 @@
   },
   "crossings": {
     "file": ""
+  },
+  "db": {
+    "host": "",
+    "dbname": "",
+    "port": 5432,
+    "user": "",
+    "password": ""
   }
 }
