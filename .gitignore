@@ -6,3 +6,4 @@
 r/config.json
 r/rds/*.rds
 r/csv/*.csv
+r/geojson/*.geojson
