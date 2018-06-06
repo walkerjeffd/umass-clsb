@@ -14,7 +14,7 @@ pool <- dbPool(
 )
 
 sql <- "SELECT * FROM crossings_huc WHERE huc8 = $1"
-df2 <- dbGetQuery(pool, sql, param = list('01040002'))
+df <- dbGetQuery(pool, sql, param = list('01040002'))
 
 summary(df)
 
