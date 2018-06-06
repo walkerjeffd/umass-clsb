@@ -106,12 +106,52 @@ First, run `r/import-crossings.R` to reformat crossings file, select final colum
 
 ```
 cd r
-Rscript import-crossings.R
+Rscript load-crossings.R
 ```
 
-Then run the `import/crossings.sh` bash script to populate the `crossings` table in the database.
+Then run the `db/import/crossings.sh` bash script to populate the `crossings` table in the database.
 
 ```
 cd db/import
-./crossings.sh ../../r/csv/crossings.csv
+./crossings.sh clsb ../../r/csv/crossings.csv
+```
+
+### Import HUC Layers
+
+Run `db/import/wbd-huc.sh` script to populate the `wbdhu{4,6,8,10,12}` tables.
+
+```
+cd db/import
+./wbd-huc.sh clsb /path/to/NATIONAL_WBD_GDB.gdb
+```
+
+### Create crossings-huc Lookup
+
+Run `db/derived/crossings-huc.sh` to create the `crossings_huc` lookup table, and prune huc tables (limit to extent of crossings).
+
+```
+cd db/derived
+./crossings-huc.sh clsb
+```
+
+## Shiny App
+
+After setting up database, first create huc8.geojson file.
+
+```
+./db/export/huc8-geojson.sh clsb ./r/geojson/huc8.geojson
+```
+
+Then run `r/load-huc8.R` to convert from geojson to rds.
+
+```
+cd r
+Rscript load-huc8.R
+```
+
+Create symbolic link to shiny app for deployment
+
+```
+cd ~/ShinyApps
+ln -s ~/path/to/umass-clsb/r/shiny ~/ShinyApps/clsb
 ```

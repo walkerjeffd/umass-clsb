@@ -32,8 +32,10 @@ CREATE INDEX crossings_huc_huc2_idx ON crossings_huc (huc2);
 "
 
 echo Deleting unused hucs in $DB...
-psql -d "$DB" -c "DELETE FROM wbdhu12 WHERE huc12 NOT IN (SELECT DISTINCT huc12 FROM crossings_huc);"
-psql -d "$DB" -c "DELETE FROM wbdhu10 WHERE huc10 NOT IN (SELECT DISTINCT huc10 FROM crossings_huc);"
-psql -d "$DB" -c "DELETE FROM wbdhu8 WHERE huc8 NOT IN (SELECT DISTINCT huc8 FROM crossings_huc);"
-psql -d "$DB" -c "DELETE FROM wbdhu6 WHERE huc6 NOT IN (SELECT DISTINCT huc6 FROM crossings_huc);"
-psql -d "$DB" -c "DELETE FROM wbdhu4 WHERE huc4 NOT IN (SELECT DISTINCT huc4 FROM crossings_huc);"
+psql -d "$DB" -c "
+DELETE FROM wbdhu12 WHERE huc12 NOT IN (SELECT DISTINCT huc12 FROM crossings_huc);
+DELETE FROM wbdhu10 WHERE huc10 NOT IN (SELECT DISTINCT huc10 FROM crossings_huc);
+DELETE FROM wbdhu8 WHERE huc8 NOT IN (SELECT DISTINCT huc8 FROM crossings_huc);
+DELETE FROM wbdhu6 WHERE huc6 NOT IN (SELECT DISTINCT huc6 FROM crossings_huc);
+DELETE FROM wbdhu4 WHERE huc4 NOT IN (SELECT DISTINCT huc4 FROM crossings_huc);
+"
