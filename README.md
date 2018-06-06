@@ -13,9 +13,9 @@ UMass Amherst
 
 ## About
 
-This repo contains the source code for the Critical Linkages web application.
+This repo contains the source code for the Critical Linkages Scenario Builder (CLSB) web application.
 
-The web application is not currently live.
+The development version is available at: http://shiny.ecosheds.org/users/jeff/clsb
 
 ## Datasets
 
@@ -36,26 +36,6 @@ A list of all tiles including bounding box (xmin, xmax, ymin, ymax) is listed in
 ### Stream Crossings
 
 The stream crossings are stored in a simple (tab-delimited) text file: `link_crossings.txt`.
-
-#### Test Dataset
-
-Create test dataset of crossings within HUC8 01040002 (Lower Androscoggin)
-
-```sql
-COPY (
-  WITH cw AS (
-    SELECT
-      id,
-      c.geom AS geom,
-      ST_Transform(c.geom, 4326) AS geom_wgs84
-    FROM crossings c, wbdhu8 w
-    WHERE ST_Intersects(w.geom, c.geom)
-    AND w.huc8 = '01040002'
-  )
-  SELECT id, ST_X(geom) as x_coord, ST_Y(geom) as y_coord, ST_X(geom_wgs84) as lon, ST_Y(geom_wgs84) as lat
-  FROM cw
-) TO '/path/to/umass-clsb/r/csv/crossings-01040002.csv' WITH CSV HEADER;
-``` 
 
 ### Geospatial Projection
 
@@ -117,7 +97,7 @@ Create a new database and set up schema:
 
 ```
 createdb clsb
-psql -d clsb -f db/schema.db
+psql -d clsb -f db/schema.sql
 ```
 
 ### Import Crossings
