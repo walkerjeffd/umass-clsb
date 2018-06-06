@@ -48,7 +48,7 @@ ui <- fluidPage(
         p("The Critical Linkages Scenario Builder is a dynamic web application for evaluating the impact of stream crossing restoration across the Northeast US"),
         h3("Instructions"),
         tags$ol(
-          tags$li("Select Watershed: select your target watershed (HUC12)"),
+          tags$li("Select Watershed: select your target watershed (HUC8)"),
           tags$li("Select Crossings: select one or more stream crossings within the target watershed"),
           tags$li("Run Model: run the model to calculate the overall connectivity impacts due to restoration/removal of the selected crossings")
         ),
