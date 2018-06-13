@@ -127,22 +127,24 @@ pal <- colorFactor(palette = c("blue", "red"), c(TRUE, FALSE))
 
 server <- function(input, output, session) {
   observe({
-    # disable steps 2 and 3
+    # disable steps 2 and 3 at start
     shinyjs::disable(selector = "#nav > li:nth-child(3)")
     shinyjs::disable(selector = "#nav > li:nth-child(4)")
   })
 
   # globals -----------------------------------------------------------------
+
   values <- reactiveValues(
     selectedCrossingIds = integer(),   # crossing ids as integer vector
     selectedHuc8Id = character(),      # selected huc8 id as character
     crossings = NULL,                  # crossings data frame
-    modelResults = NULL
+    modelResults = NULL                # model results
   )
 
 
   # welcome tab -------------------------------------------------------------
 
+  # next button -> tab-watershed
   observeEvent(input$welcomeNextBtn, {
     updateTabsetPanel(
       session = session,
@@ -151,7 +153,10 @@ server <- function(input, output, session) {
     )
   })
 
+
   # watershed tab -----------------------------------------------------------
+
+  # selected HUC8 geojson object
   selectedHUC8 <- reactive({
     if (length(values$selectedHuc8Id) == 0) {
       return(NULL)
@@ -159,26 +164,22 @@ server <- function(input, output, session) {
     huc8[which(huc8$huc8 == values$selectedHuc8Id), ]
   })
 
+  # handle map click
   observeEvent(input$watershedMap_shape_click, {
     id <- input$watershedMap_shape_click$id
 
     if (id == "selected-huc8") {
+      # unselect current selection
       values$selectedHuc8Id <- character()
       shinyjs::hide(id = "watershed-next")
     } else {
+      # select id
       values$selectedHuc8Id <- id
       shinyjs::show(id = "watershed-next")
     }
   })
 
-  observeEvent(values$selectedHuc8Id, {
-    if (length(values$selectedHuc8Id) > 0) {
-      shinyjs::enable(selector = "#nav > li:nth-child(3)")
-    } else {
-      shinyjs::disable(selector = "#nav > li:nth-child(3)")
-    }
-  })
-
+  # render map
   output$watershedMap <- renderLeaflet({
     leaflet(huc8) %>%
       addTiles() %>%
@@ -208,7 +209,8 @@ server <- function(input, output, session) {
       )
   })
 
-  observeEvent(values$selectedHuc8Id, {
+  # highlight selected HUC8 on map
+  observe({
     x <- selectedHUC8()
 
     leafletProxy("watershedMap") %>%
@@ -235,6 +237,7 @@ server <- function(input, output, session) {
     }
   })
 
+  # status bar text
   output$watershedStatus <- renderText({
     x <- selectedHUC8()
 
@@ -245,6 +248,7 @@ server <- function(input, output, session) {
     }
   })
 
+  # debug
   output$watershedDebug <- renderPrint({
     x <- selectedHUC8()
     if (is.null(x)) {
@@ -254,18 +258,14 @@ server <- function(input, output, session) {
     }
   })
 
-  observeEvent(input$watershedMap_shape_click, {
-    id <- input$watershedMap_shape_click$id
-
-    if (id == "selected-huc8") {
-      values$selectedHuc8Id <- character()
-      shinyjs::hide(id = "watershed-next")
-    } else {
-      values$selectedHuc8Id <- id
-      shinyjs::show(id = "watershed-next")
-    }
+  # reset reactive values on new HUC8 selection
+  observeEvent(values$selectedHuc8Id, {
+    values$crossings <- NULL
+    values$selectedCrossingIds <- integer()
+    values$modelResults <- NULL
   })
 
+  # next button -> tab-crossings
   observeEvent(input$watershedNextBtn, {
     values$crossings <- loadCrossings(values$selectedHuc8Id)
     updateTabsetPanel(
@@ -275,14 +275,19 @@ server <- function(input, output, session) {
     )
   })
 
-  observeEvent(values$selectedHuc8Id, {
-    values$crossings <- NULL
-    values$selectedCrossingIds <- integer()
-    values$modelResults <- NULL
-  })
 
   # crossings tab----------------------------------------------------------
 
+  # enable/disable Step 2 tab
+  observe({
+    if (length(values$selectedHuc8Id) > 0) {
+      shinyjs::enable(selector = "#nav > li:nth-child(3)")
+    } else {
+      shinyjs::disable(selector = "#nav > li:nth-child(3)")
+    }
+  })
+
+  # selected crossings data frame (from map)
   selectedCrossings <- reactive({
     if (length(values$selectedCrossingIds) == 0) {
       shinyjs::hide(id = "crossingsTableDiv")
@@ -294,6 +299,7 @@ server <- function(input, output, session) {
       filter(id %in% values$selectedCrossingIds)
   })
 
+  # selected crossing row (from table)
   selectedCrossingsRow <- reactive({
     sel <- input$crossingsTable_rows_selected
 
@@ -304,27 +310,7 @@ server <- function(input, output, session) {
     selectedCrossings()[sel, ]
   })
 
-  output$crossingsDebug <- renderText({
-    if (is.null(values$crossings)) {
-      return("Crossings have not been loaded")
-    }
-    paste0(
-      "# Crossings: ", nrow(values$crossings), "\n",
-      "# Selected: ", length(values$selectedCrossingIds)
-    )
-  })
-
-  output$crossingsRowStatus <- renderText({
-    row <- selectedCrossingsRow()
-
-    if (is.null(row)) {
-      shinyjs::hide(id = "crossingsRowButtons")
-      return("Select a row to remove it or zoom in")
-    }
-    shinyjs::show(id = "crossingsRowButtons")
-    paste0("Selected crossing id: ", row$id[[1]])
-  })
-
+  # render initial map
   output$crossingsMap <- renderLeaflet({
     if (is.null(values$crossings)) return()
 
@@ -363,6 +349,41 @@ server <- function(input, output, session) {
       )
   })
 
+  # render data table
+  output$crossingsTable <- renderDT({
+    selectedCrossings() %>%
+      datatable(selection = "single", options = list(searching = FALSE))
+  })
+
+  # render status bar
+  output$crossingsRowStatus <- renderText({
+    row <- selectedCrossingsRow()
+
+    if (is.null(row)) {
+      shinyjs::hide(id = "crossingsRowButtons")
+      return("Select a row to remove it or zoom in")
+    }
+    shinyjs::show(id = "crossingsRowButtons")
+    paste0("Selected crossing id: ", row$id[[1]])
+  })
+
+  # handle Zoom To button click
+  observeEvent(input$crossingsZoomToRow, {
+    row <- selectedCrossingsRow()
+    map <- leafletProxy("crossingsMap")
+
+    flyTo(map, lng = row$lon[[1]], lat = row$lat[[1]], zoom = 16)
+  })
+
+  # handle Remove button click
+  observeEvent(input$crossingsRemoveRow, {
+    row <- selectedCrossingsRow()
+    id <- row$id[[1]]
+
+    values$selectedCrossingIds <- values$selectedCrossingIds[-which(values$selectedCrossingIds == id)]
+  })
+
+  # handle map click (select/unselect crossings)
   observeEvent(input$crossingsMap_shape_click, {
     id <- input$crossingsMap_shape_click$id
 
@@ -373,12 +394,17 @@ server <- function(input, output, session) {
     }
   })
 
+  # update map with selected crossings
   observeEvent(values$selectedCrossingIds, {
+    cat("observeEvent(values$selectedCrossingIds)\n")
     x <- selectedCrossings()
 
     m <- leafletProxy("crossingsMap")
 
     m %>% clearGroup(group = "selected")
+
+    # clear model results
+    values$modelResults <- NULL
 
     if (is.null(x)) return()
 
@@ -399,25 +425,19 @@ server <- function(input, output, session) {
       )
   })
 
-  output$crossingsTable <- renderDT({
-    selectedCrossings() %>%
-      datatable(selection = "single", options = list(searching = FALSE))
+  # debug
+  output$crossingsDebug <- renderText({
+    if (is.null(values$crossings)) {
+      return("Crossings have not been loaded")
+    }
+    paste0(
+      "# Crossings: ", nrow(values$crossings), "\n",
+      "# Selected: ", length(values$selectedCrossingIds), "\n",
+      "Model Results Exist? ", !is.null(values$modelResults)
+    )
   })
 
-  observeEvent(input$crossingsZoomToRow, {
-    row <- selectedCrossingsRow()
-    map <- leafletProxy("crossingsMap")
-
-    flyTo(map, lng = row$lon[[1]], lat = row$lat[[1]], zoom = 16)
-  })
-
-  observeEvent(input$crossingsRemoveRow, {
-    row <- selectedCrossingsRow()
-    id <- row$id[[1]]
-
-    values$selectedCrossingIds <- values$selectedCrossingIds[-which(values$selectedCrossingIds == id)]
-  })
-
+  # next button -> tab-model
   observeEvent(input$crossingsNextBtn, {
     cat("Run model\n")
 
@@ -439,9 +459,10 @@ server <- function(input, output, session) {
   })
 
 
-
   # model tab ---------------------------------------------------------------
-  observeEvent(values$modelResults, {
+
+  # enable/disable Step 3 tab
+  observe({
     if (!is.null(values$modelResults)) {
       shinyjs::enable(selector = "#nav > li:nth-child(4)")
     } else {
@@ -449,7 +470,7 @@ server <- function(input, output, session) {
     }
   })
 
-
+  # render model results
   output$modelResults <- renderText({
     output <- values$modelResults
     if (is.null(output)) {
@@ -465,6 +486,7 @@ server <- function(input, output, session) {
     )
   })
 
+  # prev button -> tab-crossings
   observeEvent(input$modelPrevBtn, {
     updateTabsetPanel(
       session = session,
