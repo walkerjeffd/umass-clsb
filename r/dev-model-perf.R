@@ -3,16 +3,16 @@
 library(tidyverse)
 library(jsonlite)
 
+source("load-functions.R")
+
 config <- read_json("config.json")
 
 crossings <- read_csv(
-  "csv/crossings-01040002.csv",
+  "csv/crossings.csv",
   col_types = cols(
     id = col_integer(),
     x_coord = col_double(),
-    y_coord = col_double(),
-    lon = col_double(),
-    lat = col_double()
+    y_coord = col_double()
   )
 ) %>%
   select(id, x = x_coord, y = y_coord)
