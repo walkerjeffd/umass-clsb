@@ -20,7 +20,7 @@ df_all <- tbl(con, "crossings") %>%
   collect()
 
 # randomly select 10%
-df_subset <- sample_frac(df_all, size = 0.0001)
+df_subset <- sample_frac(df_all, size = 0.1)
 
 nrow(df_subset) / nrow(df_all)
 
@@ -29,11 +29,12 @@ run_model <- function(crossing) {
 }
 
 df_results <- df_subset %>%
-  head(2) %>%
   mutate(
     results = map2(x, y, ~ run_model(data_frame(x = .x, y = .y))),
     delta = map_dbl(results, ~ .$results$delta),
-    effect = map_dbl(results, ~ .$results$effect)
+    effect = map_dbl(results, ~ .$results$effect),
+    elapsed = map_dbl(results, ~ .$elapsed),
+    readtime = map_dbl(results, ~ .$readtime)
   ) %>%
   select(-results)
 
