@@ -9,6 +9,7 @@ library(DBI)
 
 config <- read_json("../config.json")
 huc8 <- readRDS("../rds/huc8.rds")
+singleScores <- readRDS("../rds/crossings-scores.rds")
 
 pool <- dbPool(
   drv = RPostgreSQL::PostgreSQL(),
@@ -116,6 +117,8 @@ ui <- fluidPage(
         width = 6,
         h2("Model Results"),
         verbatimTextOutput(outputId = "modelResults"),
+        plotOutput(outputId = "modelHistDelta"),
+        plotOutput(outputId = "modelHistEffect"),
         actionButton(inputId = "modelPrevBtn", label = "<< Prev: Select Crossings", class = "btn-success")
       )
 
@@ -470,7 +473,7 @@ server <- function(input, output, session) {
     }
   })
 
-  # render model results
+  # render model results text
   output$modelResults <- renderText({
     output <- values$modelResults
     if (is.null(output)) {
@@ -484,6 +487,52 @@ server <- function(input, output, session) {
       "Effect = ", results$effect, "\n",
       "Elapsed Time = ", format(elapsed, digits = 2), " sec"
     )
+  })
+
+  # render model delta histogram
+  output$modelHistDelta <- renderPlot({
+    output <- values$modelResults
+    if (is.null(output)) return()
+
+    singleScores %>%
+      ggplot(aes(delta)) +
+      geom_histogram(bins = 30) +
+      geom_vline(
+        aes(
+          xintercept = output$results$delta,
+          color = "Current\nScenario"
+        )
+      ) +
+      scale_color_manual("", values = "red") +
+      labs(
+        x = "Delta",
+        y = "# Crossings",
+        title = "Histogram of Delta for All Crossings Targeted Individually",
+        subtitle = "Vertical red line shows value of current scenario"
+      )
+  })
+
+  # render model effect histogram
+  output$modelHistEffect <- renderPlot({
+    output <- values$modelResults
+    if (is.null(output)) return()
+
+    singleScores %>%
+      ggplot(aes(effect)) +
+      geom_histogram(bins = 30) +
+      geom_vline(
+        aes(
+          xintercept = output$results$effect,
+          color = "Current\nScenario"
+        )
+      ) +
+      scale_color_manual("", values = "red") +
+      labs(
+        x = "Effect",
+        y = "# Crossings",
+        title = "Histogram of Effect for All Crossings Targeted Individually",
+        subtitle = "Vertical red line shows value of current scenario"
+      )
   })
 
   # prev button -> tab-crossings
