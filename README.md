@@ -37,6 +37,45 @@ A list of all tiles including bounding box (xmin, xmax, ymin, ymax) is listed in
 
 The stream crossings are stored in a simple (tab-delimited) text file: `link_crossings.txt`.
 
+The crossings dataset includes the following columns:
+
+```txt
+id           unique ID
+x-coord      x coordinate (EPSG:5070)
+y-coord      y coordinate (EPSG:5070)
+group
+groupsize
+anysurveyed
+surveyed
+record_id
+crosscode
+no_cross
+aqua_oob
+bridge_oob
+mean_aqua
+moved
+oldx
+oldy
+linkgroup
+base
+alt
+delta        Delta
+effect       Effect
+effect_ln    Effect in log-space
+database
+aquatic
+terrestrial
+bridge
+bridgeprob
+aqualci
+aquauci
+terruci
+terrlci
+mean_terr
+roadclass
+adt
+```
+
 ### Geospatial Projection
 
 All geospatial data (i.e. stream crossings) are stored in [NAD83 / Conus Albers (EPSG:5070)](http://prj2epsg.org/epsg/5070)

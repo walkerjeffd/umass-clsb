@@ -9,7 +9,9 @@ library(DBI)
 
 config <- read_json("../config.json")
 huc8 <- readRDS("../rds/huc8.rds")
-singleScores <- readRDS("../rds/crossings-scores.rds")
+crossings <- readRDS("../rds/crossings.rds")
+
+effect_ecdf <- ecdf(crossings$effect_ln)
 
 pool <- dbPool(
   drv = RPostgreSQL::PostgreSQL(),
@@ -24,7 +26,7 @@ for (f in list.files(path = "../functions")) {
 }
 
 loadCrossings <- function(huc8) {
-  cat("loadCrossings(", huc8, ")\n", sep = "")
+  # cat("loadCrossings(", huc8, ")\n", sep = "")
 
   if (is.null(huc8) || length(huc8) == 0) {
     stop(paste0("Failed to load crossings for huc8: ", huc8))
@@ -116,9 +118,12 @@ ui <- fluidPage(
       column(
         width = 6,
         h2("Model Results"),
+        h4("Raw Results"),
         verbatimTextOutput(outputId = "modelResults"),
-        plotOutput(outputId = "modelHistDelta"),
-        plotOutput(outputId = "modelHistEffect"),
+        hr(),
+        h4("Relative to Effect of All Crossings"),
+        textOutput(outputId = "modelEffectText"),
+        plotOutput(outputId = "modelEffectHist"),
         actionButton(inputId = "modelPrevBtn", label = "<< Prev: Select Crossings", class = "btn-success")
       )
 
@@ -399,7 +404,6 @@ server <- function(input, output, session) {
 
   # update map with selected crossings
   observeEvent(values$selectedCrossingIds, {
-    cat("observeEvent(values$selectedCrossingIds)\n")
     x <- selectedCrossings()
 
     m <- leafletProxy("crossingsMap")
@@ -442,8 +446,6 @@ server <- function(input, output, session) {
 
   # next button -> tab-model
   observeEvent(input$crossingsNextBtn, {
-    cat("Run model\n")
-
     df <- selectedCrossings() %>%
       select(id, x = x_coord, y = y_coord)
 
@@ -489,50 +491,40 @@ server <- function(input, output, session) {
     )
   })
 
-  # render model delta histogram
-  output$modelHistDelta <- renderPlot({
+  # render model effect histogram
+  output$modelEffectHist <- renderPlot({
     output <- values$modelResults
     if (is.null(output)) return()
 
-    singleScores %>%
-      ggplot(aes(delta)) +
+    crossings %>%
+      ggplot(aes(effect_ln)) +
       geom_histogram(bins = 30) +
       geom_vline(
         aes(
-          xintercept = output$results$delta,
+          xintercept = log(output$results$effect),
           color = "Current\nScenario"
         )
       ) +
       scale_color_manual("", values = "red") +
       labs(
-        x = "Delta",
+        x = "Ln(Effect)",
         y = "# Crossings",
-        title = "Histogram of Delta for All Crossings Targeted Individually",
+        title = "Histogram of Ln(Effect) for All Crossings",
         subtitle = "Vertical red line shows value of current scenario"
       )
   })
 
-  # render model effect histogram
-  output$modelHistEffect <- renderPlot({
+  # render model effect text
+  output$modelEffectText <- renderText({
     output <- values$modelResults
     if (is.null(output)) return()
 
-    singleScores %>%
-      ggplot(aes(effect)) +
-      geom_histogram(bins = 30) +
-      geom_vline(
-        aes(
-          xintercept = output$results$effect,
-          color = "Current\nScenario"
-        )
-      ) +
-      scale_color_manual("", values = "red") +
-      labs(
-        x = "Effect",
-        y = "# Crossings",
-        title = "Histogram of Effect for All Crossings Targeted Individually",
-        subtitle = "Vertical red line shows value of current scenario"
-      )
+    effect <- output$results$effect
+    if (effect <= 1) effect = 1
+    paste0(
+      "Percentile: ",
+      scales::percent(effect_ecdf(log(effect)))
+    )
   })
 
   # prev button -> tab-crossings
