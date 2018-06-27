@@ -1,0 +1,536 @@
+---
+title: "Visualizing CLSB Model Output"
+author: "Jeffrey D Walker, PhD"
+date: "6/27/2018"
+output: 
+  html_document: 
+    number_sections: yes
+    toc: yes
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+
+library(tidyverse)
+library(jsonlite)
+library(ggmap)
+library(gridExtra)
+library(DBI)
+
+theme_set(theme_bw())
+
+source("load-functions.R")
+
+config <- read_json("config.json")
+```
+
+# Overview
+
+In this document, I explore some different ways of visualizing the CLSB model results. The goal is to inform discussions about different ways of presenting model output in the web application.
+
+# Data Set
+
+I will focus on crossings within the West Brook watershed (`HUC12 = 010802010604`).
+
+Map shows the crossings within this watershed, color-coded by the ln(effect).
+
+```{r, warning=FALSE}
+con <- dbConnect(
+  RPostgreSQL::PostgreSQL(),
+  dbname = config$db$dbname,
+  host = config$db$host,
+  port = config$db$port,
+  user = config$db$user
+)
+
+crossing_ids <- tbl(con, "crossings_huc") %>% 
+  filter(huc12 == "010802010604") %>% 
+  pull(crossing_id)
+
+db_crossings <- tbl(con, "crossings") %>% 
+  filter(id %in% crossing_ids) %>% 
+  select(id, lat, lon) %>% 
+  collect()
+
+crossings <- read_tsv(
+  config$crossings$file,
+  col_types = cols(
+    .default = col_double(),
+    id = col_integer(),
+    group = col_integer(),
+    groupsize = col_integer(),
+    anysurveyed = col_integer(),
+    surveyed = col_integer(),
+    record_id = col_integer(),
+    crosscode = col_character(),
+    no_cross = col_integer(),
+    bridge_oob = col_integer(),
+    moved = col_integer(),
+    linkgroup = col_character(),
+    database = col_character(),
+    bridge = col_integer(),
+    roadclass = col_integer()
+  )
+) %>% 
+  filter(id %in% crossing_ids) %>% 
+  rename(x = `x-coord`, y = `y-coord`) %>% 
+  left_join(db_crossings, by = "id")
+```
+
+```{r basemap, cache=TRUE}
+basemap <- get_googlemap(center = c(lon = mean(range(crossings$lon)), lat = mean(range(crossings$lat))), zoom = 12)
+```
+
+```{r}
+ggmap(basemap, extent = "device", darken = c(0.25, "white")) +
+  geom_point(
+    data = crossings,
+    aes(x = lon, y = lat, fill = effect_ln),
+    shape = 21,
+    size = 3
+  ) +
+  scale_fill_distiller("ln(Effect)", palette = "Spectral")
+```
+
+Histograms show the distribution of effects for these crossings in log and linear space.
+
+```{r, fig.width=10, fig.height=4}
+p1 <- crossings %>% 
+  ggplot(aes(effect_ln)) +
+  geom_histogram() +
+  labs(x = "ln(Effect)", y = "# Crossings")
+p2 <- crossings %>% 
+  ggplot(aes(effect)) +
+  geom_histogram() +
+  labs(x = "Effect", y = "# Crossings")
+grid.arrange(p1, p2, ncol = 2)
+```
+
+> Given this information (effect of each individual crossing), how would the user go about selecting which crossing(s) to improve?
+
+> What other information would be useful to them?
+
+> What criteria or strategy would they use?
+
+> What is the specific goal they are trying to achieve?
+
+# Graph Network
+
+Let's take a look at the graph network for this watershed. 
+
+These two maps show the cost of the nodes and edges.
+
+```{r, cache=TRUE}
+node_ids <- DBI::dbGetQuery(con, "SELECT n.id FROM nodes n, wbdhu12 w WHERE ST_Intersects(w.geom, n.geom) AND w.huc12='010802010604'") %>% 
+  pull(id) %>% 
+  sprintf("%.0f", .)
+
+nodes <- tbl(con, "nodes") %>% 
+  filter(id %in% node_ids) %>% 
+  select(id, x, y, lat, lon, cost) %>% 
+  collect()
+```
+
+```{r, cache=TRUE}
+edges <- tbl(con, "edges") %>% 
+  filter(
+    start_id %in% node_ids | end_id %in% node_ids
+  ) %>% 
+  select(id, start_id, end_id, length, cost, value) %>% 
+  collect()
+edges <- edges %>% 
+  left_join(
+    nodes %>% 
+      select(id, start_x = x, start_y = y, start_lat = lat, start_lon = lon),
+    by = c("start_id" = "id")
+  ) %>% 
+  left_join(
+    nodes %>% 
+      select(id, end_x = x, end_y = y, end_lat = lat, end_lon = lon),
+    by = c("end_id" = "id")
+  )
+```
+
+```{r, fig.width=12, fig.height=8}
+p1 <- nodes %>% 
+  ggplot(aes(x, y)) +
+  geom_segment(
+    data = edges,
+    mapping = aes(x = start_x, xend = end_x, y = start_y, yend = end_y)
+  ) +
+  geom_point(aes(fill = cost), size = 2, shape = 21) +
+  scale_fill_distiller("Node Cost", palette = "Spectral") +
+  coord_equal() +
+  theme(
+    panel.grid = element_blank(),
+    axis.text = element_blank(),
+    axis.title = element_blank(),
+    axis.ticks = element_blank()
+  )
+p2 <- edges %>% 
+  ggplot() +
+  geom_segment(
+    aes(x = start_x, xend = end_x, y = start_y, yend = end_y, color = cost)
+  ) +
+  scale_color_distiller("Edge Cost", palette = "Spectral") +
+  coord_equal() +
+  theme(panel.background = element_rect(fill = "black"),
+    panel.grid = element_blank(),
+    axis.text = element_blank(),
+    axis.title = element_blank(),
+    axis.ticks = element_blank()
+  )
+grid.arrange(p1, p2, ncol = 2)
+```
+
+And this map shows the "value" of each edge.
+
+> What is edge "value"?
+
+```{r, fig.width=6, fig.height=7}
+edges %>% 
+  ggplot() +
+  geom_segment(
+    aes(x = start_x, xend = end_x, y = start_y, yend = end_y, color = value)
+  ) +
+  scale_color_distiller("Edge Value", palette = "Spectral") +
+  coord_equal() +
+  theme(panel.background = element_rect(fill = "black"),
+    panel.grid = element_blank(),
+    axis.text = element_blank(),
+    axis.title = element_blank(),
+    axis.ticks = element_blank()
+  )
+```
+
+Not all nodes are associated with a crossing. In fact, most are not. Non-crossing nodes exist to ensure consistent segmentation of the edges (30 m length), and to represent tributary confluences.
+
+```{r, fig.width=6, fig.height=5}
+ggmap(basemap, extent = "device", darken = c(0.25, "white")) +
+  geom_segment(
+    data = edges, 
+    aes(x = start_x, xend = end_x, y = start_y, yend = end_y)
+  ) +
+  geom_point(
+    data = nodes,
+    aes(x = lon, y = lat, color = "Node"),
+    size = 1
+  ) +
+  geom_point(
+    data = crossings,
+    aes(x = lon, y = lat, color = "Crossing"),
+    size = 0.5
+  ) +
+  scale_color_manual("", values = c("Node" = "black", "Crossing" = "red"))
+```
+
+# Scenario Results
+
+Let's run the critical linkages tool to evaluate the single crossing, which is labeled as Target on this map.
+
+```{r}
+target <- crossings %>% 
+  filter(id == 569004)
+output <- graph.linkages(targets = target, source = config$tiles$dir)
+output$results$nodes <- output$results$nodes %>% 
+  left_join(select(nodes, id, lat, lon), by = c("nodeid" = "id"))
+output$results$edges <- output$results$edges %>% 
+  left_join(edges, by = c("node1" = "start_id", "node2" = "end_id"))
+output$results$edges$kernel_base = output$results$kernels$base
+output$results$edges$kernel_alt = output$results$kernels$alt
+output$results$edges$effect = output$results$effects
+output$results$edges$effect = output$results$effects
+output$results$edges$delta = output$results$deltas
+```
+
+```{r}
+ggmap(basemap, extent = "device", darken = c(0.25, "white")) +
+  geom_point(
+    data = crossings,
+    aes(x = lon, y = lat, fill = effect_ln),
+    shape = 21,
+    size = 3
+  ) +
+  geom_point(
+    data = target,
+    aes(x = lon, y = lat),
+    shape = 21,
+    size = 10,
+    fill = NA,
+    color = "red"
+  ) + 
+  geom_text(
+    data = target,
+    aes(x = lon, y = lat, label = "Target"),
+    color = "red",
+    hjust = 0,
+    vjust = 0.5,
+    nudge_x = 0.004
+  ) +
+  scale_fill_distiller("ln(Effect)", palette = "Spectral")
+```
+
+Improving this single crossing, the CLSB results give a delta of `r scales::comma(round(output$results$delta))` and an effect of `r scales::comma(round(output$results$effect))`. These two metrics are the sums of individual delta and effect values for each segment in the network localized around the target crossing. The delta and effect are computed from the change in the resistance kernel due to improvement of this crossing.
+
+## Network Maps
+
+These two maps compare the base and alternative (post-improvement) resistence kernels. Note they both use the same color scale, and yet they are perceptually identical.
+
+```{r, cache=TRUE}
+basemap2 <- get_googlemap(center = c(lon = mean(range(output$results$nodes$lon)), lat = mean(range(output$results$nodes$lat))), zoom = 14)
+```
+
+```{r, fig.width=12, fig.height=5}
+p1 <- ggmap(basemap2, extent = "device", darken = c(0.5, "white")) +
+  geom_point(
+    data = output$results$nodes,
+    aes(x = lon, y = lat)
+  ) +
+  geom_segment(
+    data = output$results$edges, 
+    aes(x = start_lon, xend = end_lon, y = start_lat, yend = end_lat, color = kernel_base),
+    size = 1
+  ) +
+  geom_point(
+    data = target,
+    aes(x = lon, y = lat),
+    shape = 21,
+    size = 10,
+    fill = NA,
+    color = "red"
+  ) + 
+  geom_text(
+    data = target,
+    aes(x = lon, y = lat, label = "Target"),
+    color = "red",
+    hjust = 0,
+    vjust = 0.5,
+    nudge_x = 0.004
+  ) +
+  scale_color_distiller(palette = "Spectral", limits = c(0, 30)) +
+  labs(title = "Base Kernel")
+p2 <- ggmap(basemap2, extent = "device", darken = c(0.5, "white")) +
+  geom_point(
+    data = output$results$nodes,
+    aes(x = lon, y = lat)
+  ) +
+  geom_segment(
+    data = output$results$edges, 
+    aes(x = start_lon, xend = end_lon, y = start_lat, yend = end_lat, color = kernel_alt),
+    size = 1
+  ) +
+  geom_point(
+    data = target,
+    aes(x = lon, y = lat),
+    shape = 21,
+    size = 10,
+    fill = NA,
+    color = "red"
+  ) + 
+  geom_text(
+    data = target,
+    aes(x = lon, y = lat, label = "Target"),
+    color = "red",
+    hjust = 0,
+    vjust = 0.5,
+    nudge_x = 0.004
+  ) +
+  scale_color_distiller(palette = "Spectral", limits = c(0, 30)) +
+  labs(title = "Alternate Kernel")
+grid.arrange(p1, p2, nrow = 1)
+```
+
+But if we calculate the difference between them (alternative - base), we see there are some differences with values between 0 and 0.125.
+
+```{r, fig.width=6, fig.height=4}
+ggmap(basemap2, extent = "device", darken = c(0.5, "white")) +
+  geom_point(
+    data = output$results$nodes,
+    aes(x = lon, y = lat)
+  ) +
+  geom_segment(
+    data = output$results$edges, 
+    aes(x = start_lon, xend = end_lon, y = start_lat, yend = end_lat, color = kernel_alt - kernel_base),
+    size = 1
+  ) +
+  geom_point(
+    data = target,
+    aes(x = lon, y = lat),
+    shape = 21,
+    size = 10,
+    fill = NA,
+    color = "red"
+  ) + 
+  geom_text(
+    data = target,
+    aes(x = lon, y = lat, label = "Target"),
+    color = "red",
+    hjust = 0,
+    vjust = 0.5,
+    nudge_x = 0.004
+  ) +
+  scale_color_distiller(palette = "Spectral", limits = c(0, NA)) +
+  labs(title = "Kernel Difference (Alternate - Base)")
+```
+
+The delta value for each segment is calculated as the difference between the alternate and base kernels, and then multiplied by a scaling factor (x1000). The effect is equal to the delta multiplied by the edge value, and then divided by the number of cells within the edge. The delta and effect of each segment are therefore very similar as shown in these two maps, but note the difference in the ranges of the color scales.
+
+```{r, fig.width=12, fig.height=5}
+p1 <- ggmap(basemap2, extent = "device", darken = c(0.5, "white")) +
+  geom_point(
+    data = output$results$nodes,
+    aes(x = lon, y = lat)
+  ) +
+  geom_segment(
+    data = output$results$edges, 
+    aes(x = start_lon, xend = end_lon, y = start_lat, yend = end_lat, color = delta),
+    size = 1
+  ) +
+  geom_point(
+    data = target,
+    aes(x = lon, y = lat),
+    shape = 21,
+    size = 10,
+    fill = NA,
+    color = "red"
+  ) + 
+  geom_text(
+    data = target,
+    aes(x = lon, y = lat, label = "Target"),
+    color = "red",
+    hjust = 0,
+    vjust = 0.5,
+    nudge_x = 0.004
+  ) +
+  scale_color_distiller(palette = "Spectral") +
+  labs(title = "Delta")
+p2 <- ggmap(basemap2, extent = "device", darken = c(0.5, "white")) +
+  geom_point(
+    data = output$results$nodes,
+    aes(x = lon, y = lat)
+  ) +
+  geom_segment(
+    data = output$results$edges, 
+    aes(x = start_lon, xend = end_lon, y = start_lat, yend = end_lat, color = effect),
+    size = 1
+  ) +
+  geom_point(
+    data = target,
+    aes(x = lon, y = lat),
+    shape = 21,
+    size = 10,
+    fill = NA,
+    color = "red"
+  ) + 
+  geom_text(
+    data = target,
+    aes(x = lon, y = lat, label = "Target"),
+    color = "red",
+    hjust = 0,
+    vjust = 0.5,
+    nudge_x = 0.004
+  ) +
+  scale_color_distiller(palette = "Spectral") +
+  labs(title = "Effect")
+grid.arrange(p1, p2, nrow = 1)
+```
+
+> How would a user interpret these maps?
+
+> What causes this pattern where the segments just downstream and upstream of the target have relatively low effects?
+
+> Why is there a relatively large effect on the segments in the trib on the opposite bank?
+
+## Relative to the Effects Distribution of All Crossings
+
+Another way to understand the meaning of this result is in how it relates to the effects of targeting all other crossings (individually).
+
+This figure plots the histograms of the effects for each crossing within the West Brook watershed on linear and logarithmic scales. The vertical red lines show the value of the target crossing evaluated above.
+
+```{r, fig.width=12, fig.height=4}
+p1 <- crossings %>% 
+  ggplot(aes(effect)) +
+  geom_histogram(binwidth = 500) +
+  geom_vline(xintercept = output$results$effect, color = "red", size = 1) +
+  labs(x = "Effect", y = "# Crossings")
+p2 <- crossings %>% 
+  ggplot(aes(effect_ln)) +
+  geom_histogram(binwidth = 0.25) +
+  geom_vline(xintercept = log(output$results$effect), color = "red", size = 1) +
+  labs(x = "ln(Effect)", y = "# Crossings")
+grid.arrange(p1, p2, nrow = 1)
+```
+
+```{r}
+ecdf_effect <- ecdf(crossings$effect)
+ecdf_effect_ln <- ecdf(crossings$effect_ln)
+```
+
+A more useful way to plot this is a cumulative frequency distribution. These two plots show the empirical cumulative frequency distribution of individual effects for all crossings. The red points show the probability of the target crossing being evaluted in this section, which had an effect of `r scales::comma(round(output$results$effect))` that is located at the `r scales::percent(ecdf_effect(output$results$effect))` percentile.
+
+```{r, fig.width=12, fig.height=4}
+p1 <- data_frame(
+  effect = crossings$effect,
+  prob = ecdf_effect(crossings$effect)
+) %>% 
+  ggplot(aes(effect, prob)) +
+  geom_point() +
+  geom_line() +
+  geom_point(
+    data = data_frame(
+      effect = output$results$effect,
+      prob = ecdf_effect(output$results$effect)
+    ),
+    color = "red",
+    size = 3
+  ) +
+  geom_text(
+    data = data_frame(
+      effect = output$results$effect,
+      prob = ecdf_effect(output$results$effect)
+    ),
+    aes(label = "Target"),
+    color = "red",
+    hjust = 0, vjust = 1,
+    nudge_x = 100, nudge_y = -0.01
+  ) +
+  scale_y_continuous(labels = scales::percent, breaks = scales::pretty_breaks()) +
+  labs(
+    x = "Effect",
+    y = "Cumulative Probability"
+  )
+p2 <- data_frame(
+  effect_ln = crossings$effect_ln,
+  prob = ecdf_effect_ln(crossings$effect_ln)
+) %>% 
+  ggplot(aes(effect_ln, prob)) +
+  geom_point() +
+  geom_line() +
+  geom_point(
+    data = data_frame(
+      effect_ln = log(output$results$effect),
+      prob = ecdf_effect_ln(log(output$results$effect))
+    ),
+    color = "red",
+    size = 3
+  ) +
+  geom_text(
+    data = data_frame(
+      effect_ln = log(output$results$effect),
+      prob = ecdf_effect_ln(log(output$results$effect))
+    ),
+    aes(label = "Target"),
+    color = "red",
+    hjust = 0, vjust = 1,
+    nudge_x = 0.1, nudge_y = -0.01
+  ) +
+  scale_y_continuous(labels = scales::percent, breaks = scales::pretty_breaks()) +
+  labs(
+    x = "ln(Effect)",
+    y = "Cumulative Probability"
+  )
+grid.arrange(p1, p2, nrow = 1)
+```
+
