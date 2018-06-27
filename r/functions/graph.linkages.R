@@ -58,7 +58,20 @@
     base <- base * edges$length / cellsize      # adjust for # of cells in each kernel
     alt <- alt * edges$length / cellsize
     deltas <- (alt - base) / scaleby
-    z <- list(delta = sum(deltas), effect = sum(deltas * edges$value / (edges$length / cellsize)))
+    effects <- deltas * edges$value / (edges$length / cellsize)
+
+    z <- list(
+      delta = sum(deltas),
+      deltas = deltas,
+      effect = sum(effects),
+      effects = effects,
+      edges = edges,
+      nodes = nodes,
+      kernels = list(
+        base = base,
+        alt = alt
+      )
+    )
 
     elapsed <- proc.time()[3] - a
     # cat('\nTotal elapsed time = ', elapsed, ' sec\n', sep = '')
