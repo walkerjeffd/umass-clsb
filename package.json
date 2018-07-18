@@ -4,8 +4,9 @@
   "description": "Critical Linkages Web Application =================================",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "algorithm": "budo src/algorithm.js --open --live -- -t babelify"
+    "test": "mocha",
+    "graph-live": "budo lib/graph/live.js --open --live -- -t babelify",
+    "api": "nodemon api/index.js"
   },
   "repository": {
     "type": "git",
@@ -19,9 +20,20 @@
   "homepage": "https://github.com/walkerjeffd/umass-clsb#readme",
   "devDependencies": {
     "babel-core": "^6.26.3",
-    "babelify": "^8.0.0"
+    "babelify": "^8.0.0",
+    "chai": "^4.1.2",
+    "eslint": "^5.1.0",
+    "eslint-config-airbnb-base": "^13.0.0",
+    "eslint-plugin-import": "^2.13.0",
+    "mocha": "^5.2.0"
   },
   "dependencies": {
-    "jStat": "^1.7.1"
+    "body-parser": "^1.18.3",
+    "compression": "^1.7.3",
+    "express": "^4.16.3",
+    "jStat": "^1.7.1",
+    "knex": "^0.15.1",
+    "morgan": "^1.9.0",
+    "pg": "^7.4.3"
   }
 }
