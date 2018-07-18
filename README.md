@@ -15,15 +15,13 @@ UMass Amherst
 
 This repo contains the source code for the Critical Linkages Scenario Builder (CLSB) web application.
 
-The development version is available at: http://shiny.ecosheds.org/users/jeff/clsb
+The development version of the shiny app is available at: http://shiny.ecosheds.org/users/jeff/clsb
 
 ## Datasets
 
 ### HUC Boundaries
 
-- Download WBD dataset (`NATIONAL_WBD_GDB.zip`) from [USGS NHD website](https://nhd.usgs.gov/data.html)
-- Unzip `NATIONAL_WBD_GDB.zip`
-- Run `import/wbd-huc.sh` script
+Download WBD dataset (`NATIONAL_WBD_GDB.zip`) from [USGS NHD website](https://nhd.usgs.gov/data.html) and extract geodatabase from `NATIONAL_WBD_GDB.zip`.
 
 ### Graph Tiles
 
@@ -33,48 +31,11 @@ The filename for each tile is: `graphXXXYYY.RDS` where `XXX` is the three digit 
 
 A list of all tiles including bounding box (xmin, xmax, ymin, ymax) is listed in the `graphtiles.txt` file.
 
-### Stream Crossings
+### Barriers
 
-The stream crossings are stored in a simple (tab-delimited) text file: `link_crossings.txt`.
+The geospatial culverts and dams layers can be downloaded from: https://scholarworks.umass.edu/data/55/
 
-The crossings dataset includes the following columns:
-
-```txt
-id           unique ID
-x-coord      x coordinate (EPSG:5070)
-y-coord      y coordinate (EPSG:5070)
-group
-groupsize
-anysurveyed
-surveyed
-record_id
-crosscode
-no_cross
-aqua_oob
-bridge_oob
-mean_aqua
-moved
-oldx
-oldy
-linkgroup
-base
-alt
-delta        Delta
-effect       Effect
-effect_ln    Effect in log-space
-database
-aquatic
-terrestrial
-bridge
-bridgeprob
-aqualci
-aquauci
-terruci
-terrlci
-mean_terr
-roadclass
-adt
-```
+Download the zip file and extract shapefiles.
 
 ### Geospatial Projection
 
@@ -97,6 +58,72 @@ PROJCS["NAD_1983_Albers",
   UNIT["Meter",1.0]]
 ```
 
+## Database
+
+### Initialization
+
+Create a new database and set up schema:
+
+```
+cd db
+./init.sh
+```
+
+### Import Data
+
+Set working directory to `db/import` folder
+
+```
+cd db/import
+```
+
+#### Culverts
+
+Run the `culverts.sh` bash script to import the DSL shapefile into the `culverts` table in the database.
+
+```
+./culverts.sh /path/to/DSL_critical_linkages_culverts_v3.0.shp
+```
+
+#### Dams
+
+Run the `dams.sh` bash script to import the DSL shapefile into the `dams` table in the database.
+
+```
+./dams.sh /path/to/DSL_critical_linkages_dams_v3.0.shp
+```
+
+#### HUC Layers
+
+Run `wbd-huc.sh` script to populate the `wbdhu{4,6,8,10,12}` tables.
+
+```
+./wbd-huc.sh /path/to/NATIONAL_WBD_GDB.gdb
+```
+
+### Derived Data
+
+Set working directory to `db/derived` folder
+
+```
+cd db/derived
+```
+
+#### Barriers
+
+Merge the `culverts` and `dams` tables into a single `barriers table`.
+
+```
+./barriers.sh
+```
+
+#### Barriers-Huc Lookup
+
+Run `db/derived/barriers-huc.sh` to create the `barriers_huc` lookup table, and prune huc tables (limit to extent of barriers).
+
+```
+./barriers-huc.sh
+```
 
 ## Model Code
 
@@ -121,64 +148,13 @@ The `r/load-functions.R` script will load all functions are once (requires `cwd 
 
 Run the `r/demo.R` code line-by-line.
 
-### Configuration
-
-Copy `r/config.template.json` to `r/config.json` and fill out entries.
-
-```bash
-cp r/config.template.json r/config.json
-nano r/config.json
-``` 
-
-## Database
-
-Create a new database and set up schema:
-
-```
-createdb clsb
-psql -d clsb -f db/schema.sql
-```
-
-### Import Crossings
-
-First, run `r/import-crossings.R` to reformat crossings file, select final columns, and save to csv.
-
-```
-cd r
-Rscript load-crossings.R
-```
-
-Then run the `db/import/crossings.sh` bash script to populate the `crossings` table in the database.
-
-```
-cd db/import
-./crossings.sh clsb ../../r/csv/crossings.csv
-```
-
-### Import HUC Layers
-
-Run `db/import/wbd-huc.sh` script to populate the `wbdhu{4,6,8,10,12}` tables.
-
-```
-cd db/import
-./wbd-huc.sh clsb /path/to/NATIONAL_WBD_GDB.gdb
-```
-
-### Create crossings-huc Lookup
-
-Run `db/derived/crossings-huc.sh` to create the `crossings_huc` lookup table, and prune huc tables (limit to extent of crossings).
-
-```
-cd db/derived
-./crossings-huc.sh clsb
-```
-
 ## Shiny App
 
 After setting up database, first create huc8.geojson file.
 
 ```
-./db/export/huc8-geojson.sh clsb ./r/geojson/huc8.geojson
+cd db/export/
+./huc8-geojson.sh ../../r/geojson/huc8.geojson
 ```
 
 Then run `r/load-huc8.R` to convert from geojson to rds.
