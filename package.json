@@ -1,0 +1,27 @@
+{
+  "name": "clsb",
+  "version": "1.0.0",
+  "description": "Critical Linkages Web Application =================================",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "algorithm": "budo src/algorithm.js --open --live -- -t babelify"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/walkerjeffd/umass-clsb.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/walkerjeffd/umass-clsb/issues"
+  },
+  "homepage": "https://github.com/walkerjeffd/umass-clsb#readme",
+  "devDependencies": {
+    "babel-core": "^6.26.3",
+    "babelify": "^8.0.0"
+  },
+  "dependencies": {
+    "jStat": "^1.7.1"
+  }
+}
