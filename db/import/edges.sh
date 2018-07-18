@@ -39,6 +39,8 @@ UPDATE edges SET
 echo Creating indices...
 psql -h $SHEDS_CLSB_DB_HOST -p $SHEDS_CLSB_DB_PORT -U $SHEDS_CLSB_DB_USER -d $SHEDS_CLSB_DB_DBNAME -c "
 CREATE INDEX edges_geom_idx ON edges USING gist(geom);
+CREATE INDEX edges_start_id_idx ON edges(start_id);
+CREATE INDEX edges_end_id_idx ON edges(end_id);
 "
 
 echo Done!

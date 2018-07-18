@@ -56,7 +56,7 @@ conn <- dbConnect(
   user = config$db$user
 )
 
-sql <- "SELECT id, type, x_coord, y_coord, lat, lon, bh.* FROM barriers b INNER JOIN barriers_huc bh ON b.id=bh.barrier_id WHERE bh.huc8 = $1"
+sql <- "SELECT id, type, x_coord, y_coord, lat, lon, bh.* FROM barriers b INNER JOIN barrier_huc bh ON b.id=bh.barrier_id WHERE bh.huc8 = $1"
 barriers <- dbGetQuery(conn, sql, param = list('01040002'))
 
 summary(barriers)

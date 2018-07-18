@@ -417,24 +417,22 @@ edges_kern_base %>%
 
 Export this expample to JSON for JavaScript app development.
 
-## Targets
-
-```{r, comment=NA}
-targets %>% 
-  toJSON(pretty = TRUE)
+```{r}
+list(
+  effects = list(
+    delta = list(
+      total = r$results$delta,
+      values = r$results$deltas
+    ),
+    effect = list(
+      total = r$results$effect,
+      values = r$results$effects 
+    )
+  ),
+  kernels = r$results$kernels,
+  targets = targets,
+  nodes = nodes,
+  edges = edges
+) %>% 
+  write_json(path = "../lib/graph/test-data.json", pretty = TRUE, auto_unbox = TRUE)
 ```
-
-## Nodes
-
-```{r, comment=NA}
-nodes %>% 
-  toJSON(pretty = TRUE)
-```
-
-## edges
-
-```{r, comment=NA}
-edges %>% 
-  toJSON(pretty = TRUE)
-```
-

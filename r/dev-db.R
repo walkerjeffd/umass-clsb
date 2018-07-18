@@ -15,7 +15,7 @@ pool <- dbPool(
   user = config$db$user
 )
 
-sql <- "SELECT * FROM barriers_huc WHERE huc8 = $1"
+sql <- "SELECT * FROM barrier_huc WHERE huc8 = $1"
 df <- dbGetQuery(pool, sql, param = list('01040002'))
 
 summary(df)

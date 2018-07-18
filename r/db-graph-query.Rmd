@@ -1,0 +1,667 @@
+---
+title: "Database Graph Queries"
+author: "Jeffrey D Walker, PhD"
+date: "7/18/2018"
+output: 
+  html_document: 
+    number_sections: yes
+    toc: yes
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+
+library(tidyverse)
+library(jsonlite)
+library(ggmap)
+library(gridExtra)
+library(DBI)
+
+theme_set(theme_bw())
+
+source("load-functions.R")
+source("functions.R")
+
+config <- load_config()
+
+con <- dbConnect(
+  RPostgreSQL::PostgreSQL(),
+  dbname = config$db$dbname,
+  host = config$db$host,
+  port = config$db$port,
+  user = config$db$user
+)
+
+barriers <- tbl(con, "barriers") %>%
+  select(id, x = x_coord, y = y_coord) %>% 
+  collect()
+```
+
+# Overview
+
+This document explains how to retrieve a local graph network for one or more barriers from the relational database. Effectively, these queries should provide the same functionality as the `get.graph.tiles()` function.
+
+# Single Target Barrier
+
+This section focuses on retrieving the graph network for a single target, which is selected at random.
+
+```{r}
+set.seed(123)
+targets <- sample_n(barriers, size = 1)
+targets$upgrades <- 0
+print(targets)
+```
+
+## R Code Algorithm
+
+First, run the R code algorithm using . See `model-algorithm.Rmd` for details about this process.
+
+```{r}
+# arguments to graph.linkages()
+source = config$tiles$dir       # folder containing tiles
+internode = 200                 # internode interval (gives maximum edge length)
+tilesize = 400                  # size of tiles
+bandwidth = 5000                # bandwidth (m)
+search = 1.5                    # search distance (multiple of bandwidth)
+cellsize = 30                   # size of cells (m)
+fudge = 75                      # how far (m) do we allow x,ys to be from actual culverts?
+scaleby = 0.001                 # parameter from CAPS LINKAGES; use 0.001
+
+# get.graph.tiles() arguments
+points = as.data.frame(targets) # df of x,y locations of target culverts/dams
+nodecosts = NULL                # ??
+upgrades = TRUE                 # if TRUE, use points$upgrades for nodecosts in trim.along.graph
+```
+
+Compute buffer around target (`maxdist`), which is the farthest distance (m) that kernels can be affected by a given barrier.
+
+```{r}
+maxdist <- bandwidth * search + internode + fudge
+maxdist
+```
+
+Calculate buffer bounding box (`[[xmin, ymin], [xmax, ymax]]`) around the target.
+
+```{r}
+xys <- points[, c('x', 'y')]
+xys <- cbind(xys, xys - maxdist, xys + maxdist)
+colnames(xys) <- c('x', 'y', 'xmin', 'ymin', 'xmax', 'ymax')
+xys
+```
+
+Given the buffer bouding box, load graph tiles that intersect that box.
+
+```{r}
+tiles <- read.table(paste(source, 'graphtiles.txt', sep = ''), sep = '\t', header = TRUE)
+q <- outer(tiles$xmin, xys$xmax, '<=') & outer(tiles$ymin, xys$ymax, '<=') & outer(tiles$xmax, xys$xmin, '>=') & outer(tiles$ymax, xys$ymin, '>=')
+b <- apply(q, 1, 'any')
+tiles <- tiles[b,]
+f <- paste(source, sprintf('graph%03d%03d.RDS', tiles$row, tiles$col), sep = '')
+
+nodes <- edges <- matrix(0, 0, 0)
+
+for(i in 1:dim(tiles)[1]) {
+  q <- readRDS(f[i])
+  nodes <- rbind(nodes, q[[1]])
+  edges <- rbind(edges, q[[2]])
+}
+edges <- unique(edges)
+```
+
+The `nodes` matrix contains `r nrow(nodes)` rows.
+
+```{r}
+head(nodes)
+```
+
+The `edges` matrix contains `r nrow(edges)` rows.
+
+```{r}
+head(edges)
+```
+
+This map shows the nodes colored by cost, the graph tile boundaries, the location of the target (red circle), and the buffer around the target (red box).
+
+```{r}
+nodes %>% 
+  ggplot() +
+  geom_point(aes(x, y, color = cost)) +
+  geom_rect(
+    data = tiles,
+    aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
+    fill = NA,
+    color = "black"
+  ) +
+  geom_point(
+    data = targets,
+    aes(x, y),
+    size = 4, 
+    color = "red"
+  ) +
+  geom_rect(
+    data = xys,
+    aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
+    fill = NA,
+    color = "red"
+  ) +
+  coord_equal() +
+  scale_colour_distiller(palette = "Spectral", type = "div") +
+  labs(x = NULL, y = NULL)
+```
+
+After combining all tiles within the buffer (`maxdist`) of each target, the network is trimmed to a circular area of radius `maxdist` (`r scales::comma(maxdist)` m) using `trim.graph()`, which returns a 2-element list containin `nodes` and `edges`.
+
+```{r}
+tiled <- trim.graph(nodes, edges, xys, maxdist, points = TRUE, chatter = FALSE)
+str(tiled)
+```
+
+There are now `r nrow(tiled$nodes)` nodes and `r nrow(tiled$edges)` edges.
+
+```{r}
+tiled$nodes %>% 
+  ggplot() +
+  geom_point(aes(x, y, color = cost)) +
+  geom_rect(
+    data = tiles,
+    aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
+    fill = NA,
+    color = "black"
+  ) +
+  geom_point(
+    data = targets,
+    aes(x, y),
+    size = 4, 
+    color = "red"
+  ) +
+  geom_rect(
+    data = xys,
+    aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
+    fill = NA,
+    color = "red"
+  ) +
+  coord_equal() +
+  scale_colour_distiller(palette = "Spectral", type = "div") +
+  labs(x = NULL, y = NULL)
+```
+
+
+## Database Algorithm
+
+Using the database, we can perform a simple geospatial query to get all nodes within a distance of a single point.
+
+```{r}
+db_nodes <- dbGetQuery(con, "
+  SELECT n.id AS nodeid, n.x, n.y, n.cost
+  FROM nodes n, barriers b
+  WHERE ST_Contains(ST_Buffer(b.geom, $1), n.geom)
+  AND b.id=$2
+", param = list(maxdist, targets$id))
+```
+
+All `db_nodes` (n = `r nrow(db_nodes)`) are in `tiled$nodes` (n = `r nrow(tiled$nodes)`).
+
+```{r}
+all(db_nodes$nodeid %in% tiled$nodes$nodeid)
+```
+
+But not all `tiled$nodes` are in `db_nodes`.
+
+```{r}
+all(tiled$nodes$nodeid %in% db_nodes$nodeid)
+```
+
+The differences occur around the edges and are thus not important.
+
+```{r, fig.width=8, fig.height=7}
+tiled$nodes %>% 
+  ggplot(aes(x, y, color = nodeid %in% db_nodes$nodeid)) +
+  geom_point() +
+  scale_color_manual(
+    "Tile Result In\nDB Result?",
+    values = c("TRUE" = "gray50", "FALSE" = "orangered")
+  ) +
+  coord_equal()
+```
+
+Then get edges for the selected nodes.
+
+```{r}
+db_edges <- dbGetQuery(con, "
+  WITH n AS (
+    SELECT n.id AS nodeid
+    FROM nodes n, barriers b
+    WHERE ST_Contains(ST_Buffer(b.geom, $1), n.geom)
+    AND b.id=$2
+  )
+  SELECT DISTINCT id, start_id, end_id, length, cost, value
+  FROM edges, n
+  WHERE start_id=n.nodeid OR end_id=n.nodeid
+", param = list(maxdist, targets$id)) %>% 
+  filter(start_id %in% db_nodes$nodeid, end_id %in% db_nodes$nodeid)
+```
+
+```{r}
+tile_edgeids <- paste(tiled$edges$node1, tiled$edges$node2, sep = "-")
+db_edgeids <- paste(db_edges$start_id, db_edges$end_id, sep = "-")
+```
+
+All `db_edges` are in `tiled$edges`
+
+```{r}
+all(db_edgeids %in% tile_edgeids)
+```
+
+But not vice versa.
+
+```{r}
+all(tile_edgeids %in% db_edgeids)
+```
+
+Differences are due to the few nodes around the edge. Again, not important.
+
+```{r, fig.width=8, fig.height=7}
+db_edges %>%
+  left_join(
+    db_nodes %>% 
+      select(start_id = nodeid, x1 = x, y1 = y),
+    by = "start_id"
+  ) %>%
+  left_join(
+    db_nodes %>% 
+      select(end_id = nodeid, x2 = x, y2 = y),
+    by = "end_id"
+  ) %>% 
+  ggplot() +
+  geom_segment(
+    data = tiled$edges %>%
+      left_join(
+        tiled$nodes %>% 
+          select(node1 = nodeid, x1 = x, y1 = y),
+        by = "node1"
+      ) %>%
+      left_join(
+        tiled$nodes %>% 
+          select(node2 = nodeid, x2 = x, y2 = y),
+        by = "node2"
+      ),
+    aes(x = x1, xend = x2, y = y1, yend = y2),
+    color = "orangered"
+  ) +
+  geom_point(
+    data = tiled$nodes,
+    aes(x, y),
+    size = 1,
+    shape = 21,
+    color = "orangered",
+    fill = NA
+  ) +
+  geom_segment(
+    aes(x = x1, xend = x2, y = y1, yend = y2),
+    color = "gray50"
+  ) +
+  geom_point(
+    data = db_nodes,
+    aes(x, y),
+    size = 1,
+    color = "gray50"
+  ) +
+  coord_equal()
+```
+
+
+# Multiple Target Barriers
+
+This section focuses on retrieving the graph network for multiple targets (n = 4). Three chosen at random, and the fourth selected to be within 500 m of the first target.
+
+```{r}
+targets <- barriers %>% 
+  filter(id %in% c('c-244895', 'c-244844', 'c-282781', 'c-361794'))
+targets$upgrades <- 0
+print(targets)
+```
+
+## R Code Algorithm
+
+First, run the R code algorithm using . See `model-algorithm.Rmd` for details about this process.
+
+```{r}
+# arguments to graph.linkages()
+source = config$tiles$dir       # folder containing tiles
+internode = 200                 # internode interval (gives maximum edge length)
+tilesize = 400                  # size of tiles
+bandwidth = 5000                # bandwidth (m)
+search = 1.5                    # search distance (multiple of bandwidth)
+cellsize = 30                   # size of cells (m)
+fudge = 75                      # how far (m) do we allow x,ys to be from actual culverts?
+scaleby = 0.001                 # parameter from CAPS LINKAGES; use 0.001
+
+# get.graph.tiles() arguments
+points = as.data.frame(targets) # df of x,y locations of target culverts/dams
+nodecosts = NULL                # ??
+upgrades = TRUE                 # if TRUE, use points$upgrades for nodecosts in trim.along.graph
+
+maxdist <- bandwidth * search + internode + fudge
+
+xys <- points[, c('x', 'y')]
+xys <- cbind(xys, xys - maxdist, xys + maxdist)
+colnames(xys) <- c('x', 'y', 'xmin', 'ymin', 'xmax', 'ymax')
+
+tiles <- read.table(paste(source, 'graphtiles.txt', sep = ''), sep = '\t', header = TRUE)
+q <- outer(tiles$xmin, xys$xmax, '<=') & outer(tiles$ymin, xys$ymax, '<=') & outer(tiles$xmax, xys$xmin, '>=') & outer(tiles$ymax, xys$ymin, '>=')
+b <- apply(q, 1, 'any')
+tiles <- tiles[b,]
+f <- paste(source, sprintf('graph%03d%03d.RDS', tiles$row, tiles$col), sep = '')
+
+nodes <- edges <- matrix(0, 0, 0)
+
+for(i in 1:dim(tiles)[1]) {
+  q <- readRDS(f[i])
+  nodes <- rbind(nodes, q[[1]])
+  edges <- rbind(edges, q[[2]])
+}
+edges <- unique(edges)
+```
+
+The `nodes` matrix contains `r nrow(nodes)` rows.
+
+```{r}
+head(nodes)
+```
+
+The `edges` matrix contains `r nrow(edges)` rows.
+
+```{r}
+head(edges)
+```
+
+This map shows the nodes colored by cost, the graph tile boundaries, the location of the target (red circle), and the buffer around the target (red box).
+
+```{r, fig.width=8, fig.height=3}
+nodes %>% 
+  ggplot() +
+  geom_point(aes(x, y, color = cost)) +
+  geom_rect(
+    data = tiles,
+    aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
+    fill = NA,
+    color = "black"
+  ) +
+  geom_point(
+    data = targets,
+    aes(x, y),
+    size = 4, 
+    color = "red"
+  ) +
+  geom_rect(
+    data = xys,
+    aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
+    fill = NA,
+    color = "red"
+  ) +
+  coord_equal() +
+  scale_colour_distiller(palette = "Spectral", type = "div") +
+  labs(x = NULL, y = NULL)
+```
+
+After combining all tiles within the buffer (`maxdist`) of each target, the network is trimmed to a circular area of radius `maxdist` (`r scales::comma(maxdist)` m) using `trim.graph()`, which returns a 2-element list containin `nodes` and `edges`.
+
+```{r}
+tiled <- trim.graph(nodes, edges, xys, maxdist, points = TRUE, chatter = FALSE)
+str(tiled)
+```
+
+There are now `r nrow(tiled$nodes)` nodes and `r nrow(tiled$edges)` edges.
+
+```{r, fig.width=8, fig.height=3}
+tiled$nodes %>% 
+  ggplot() +
+  geom_point(aes(x, y, color = cost)) +
+  geom_rect(
+    data = tiles,
+    aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
+    fill = NA,
+    color = "black"
+  ) +
+  geom_point(
+    data = targets,
+    aes(x, y),
+    size = 4, 
+    color = "red"
+  ) +
+  geom_rect(
+    data = xys,
+    aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
+    fill = NA,
+    color = "red"
+  ) +
+  coord_equal() +
+  scale_colour_distiller(palette = "Spectral", type = "div") +
+  labs(x = NULL, y = NULL)
+```
+
+Zoomin in on the first two targets that are located close to one another.
+
+```{r, fig.width=8, fig.height=7}
+tiled$nodes %>% 
+  ggplot() +
+  geom_point(aes(x, y, color = cost)) +
+  geom_rect(
+    data = tiles,
+    aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
+    fill = NA,
+    color = "black"
+  ) +
+  geom_point(
+    data = targets,
+    aes(x, y),
+    size = 4, 
+    color = "red"
+  ) +
+  geom_rect(
+    data = xys,
+    aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
+    fill = NA,
+    color = "red"
+  ) +
+  coord_equal(xlim = c(xys$xmin[[1]], xys$xmax[[1]]), ylim = c(xys$ymin[[1]], xys$ymax[[1]])) +
+  scale_colour_distiller(palette = "Spectral", type = "div") +
+  labs(x = NULL, y = NULL)
+```
+
+## Database Algorithm
+
+Using the database, we can perform a simple geospatial query to get all nodes within a distance of a single point.
+
+```{r}
+db_nodes <- lapply(targets$id, function (id) {
+    dbGetQuery(con, "
+      SELECT n.id AS nodeid, n.x, n.y, n.cost
+      FROM nodes n, barriers b
+      WHERE ST_Contains(ST_Buffer(b.geom, $1), n.geom)
+      AND b.id=$2
+    ", param = list(maxdist, id))
+  }) %>% 
+  bind_rows() %>% 
+  distinct()
+```
+
+All `db_nodes` (n = `r nrow(db_nodes)`) are in `tiled$nodes` (n = `r nrow(tiled$nodes)`).
+
+```{r}
+all(db_nodes$nodeid %in% tiled$nodes$nodeid)
+```
+
+But not all `tiled$nodes` are in `db_nodes`.
+
+```{r}
+all(tiled$nodes$nodeid %in% db_nodes$nodeid)
+```
+
+The differences occur around the edges and are thus not important.
+
+```{r, fig.width=8, fig.height=3}
+tiled$nodes %>% 
+  ggplot(aes(x, y, color = nodeid %in% db_nodes$nodeid)) +
+  geom_point() +
+  scale_color_manual(
+    "Tile Result In\nDB Result?",
+    values = c("TRUE" = "gray50", "FALSE" = "orangered")
+  ) +
+  coord_equal()
+```
+
+Zoom into first two targets.
+
+```{r, fig.width=8, fig.height=7}
+tiled$nodes %>% 
+  ggplot(aes(x, y, color = nodeid %in% db_nodes$nodeid)) +
+  geom_point() +
+  scale_color_manual(
+    "Tile Result In\nDB Result?",
+    values = c("TRUE" = "gray50", "FALSE" = "orangered")
+  ) +
+  coord_equal(xlim = c(xys$xmin[[1]], xys$xmax[[1]]), ylim = c(xys$ymin[[1]], xys$ymax[[1]]))
+```
+
+Then get edges for the selected nodes.
+
+```{r}
+db_edges <- lapply(targets$id, function (id) {
+    dbGetQuery(con, "
+      WITH n AS (
+        SELECT n.id AS nodeid
+        FROM nodes n, barriers b
+        WHERE ST_Contains(ST_Buffer(b.geom, $1), n.geom)
+        AND b.id=$2
+      )
+      SELECT DISTINCT id, start_id, end_id, length, cost, value
+      FROM edges, n
+      WHERE start_id=n.nodeid OR end_id=n.nodeid
+    ", param = list(maxdist, id)) %>% 
+      filter(start_id %in% db_nodes$nodeid, end_id %in% db_nodes$nodeid)
+  }) %>%  
+  bind_rows() %>% 
+  distinct()
+```
+
+```{r}
+tile_edgeids <- paste(tiled$edges$node1, tiled$edges$node2, sep = "-")
+db_edgeids <- paste(db_edges$start_id, db_edges$end_id, sep = "-")
+```
+
+All `db_edges` are in `tiled$edges`
+
+```{r}
+all(db_edgeids %in% tile_edgeids)
+```
+
+But not vice versa.
+
+```{r}
+all(tile_edgeids %in% db_edgeids)
+```
+
+Differences are due to the few nodes around the edge. Again, not important.
+
+```{r, fig.width=8, fig.height=3}
+db_edges %>%
+  left_join(
+    db_nodes %>% 
+      select(start_id = nodeid, x1 = x, y1 = y),
+    by = "start_id"
+  ) %>%
+  left_join(
+    db_nodes %>% 
+      select(end_id = nodeid, x2 = x, y2 = y),
+    by = "end_id"
+  ) %>% 
+  ggplot() +
+  geom_segment(
+    data = tiled$edges %>%
+      left_join(
+        tiled$nodes %>% 
+          select(node1 = nodeid, x1 = x, y1 = y),
+        by = "node1"
+      ) %>%
+      left_join(
+        tiled$nodes %>% 
+          select(node2 = nodeid, x2 = x, y2 = y),
+        by = "node2"
+      ),
+    aes(x = x1, xend = x2, y = y1, yend = y2),
+    color = "orangered"
+  ) +
+  geom_point(
+    data = tiled$nodes,
+    aes(x, y),
+    size = 1,
+    shape = 21,
+    color = "orangered",
+    fill = NA
+  ) +
+  geom_segment(
+    aes(x = x1, xend = x2, y = y1, yend = y2),
+    color = "gray50"
+  ) +
+  geom_point(
+    data = db_nodes,
+    aes(x, y),
+    size = 1,
+    color = "gray50"
+  ) +
+  coord_equal()
+```
+
+Zoom into first two targets.
+
+```{r, fig.width=8, fig.height=7}
+db_edges %>%
+  left_join(
+    db_nodes %>% 
+      select(start_id = nodeid, x1 = x, y1 = y),
+    by = "start_id"
+  ) %>%
+  left_join(
+    db_nodes %>% 
+      select(end_id = nodeid, x2 = x, y2 = y),
+    by = "end_id"
+  ) %>% 
+  ggplot() +
+  geom_segment(
+    data = tiled$edges %>%
+      left_join(
+        tiled$nodes %>% 
+          select(node1 = nodeid, x1 = x, y1 = y),
+        by = "node1"
+      ) %>%
+      left_join(
+        tiled$nodes %>% 
+          select(node2 = nodeid, x2 = x, y2 = y),
+        by = "node2"
+      ),
+    aes(x = x1, xend = x2, y = y1, yend = y2),
+    color = "orangered"
+  ) +
+  geom_point(
+    data = tiled$nodes,
+    aes(x, y),
+    size = 1,
+    shape = 21,
+    color = "orangered",
+    fill = NA
+  ) +
+  geom_segment(
+    aes(x = x1, xend = x2, y = y1, yend = y2),
+    color = "gray50"
+  ) +
+  geom_point(
+    data = db_nodes,
+    aes(x, y),
+    size = 1,
+    color = "gray50"
+  ) +
+  coord_equal(xlim = c(xys$xmin[[1]], xys$xmax[[1]]), ylim = c(xys$ymin[[1]], xys$ymax[[1]]))
+```

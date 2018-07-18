@@ -46,7 +46,7 @@ con <- dbConnect(
   user = config$db$user
 )
 
-barrier_ids <- tbl(con, "barriers_huc") %>% 
+barrier_ids <- tbl(con, "barrier_huc") %>% 
   filter(huc12 == "010802010604") %>% 
   pull(barrier_id)
 
