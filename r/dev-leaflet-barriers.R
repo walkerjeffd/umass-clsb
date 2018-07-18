@@ -2,6 +2,9 @@
 library(tidyverse)
 library(leaflet)
 
+source("functions.R")
+config <- load_config()
+
 m <- leaflet() %>%
   addTiles() %>%
   addMarkers(lng=174.768, lat=-36.852, popup="The birthplace of R")
@@ -43,21 +46,23 @@ leaflet(quakes) %>%
   )
 
 
-# crossings ---------------------------------------------------------------
+# barriers ---------------------------------------------------------------
 
-crossings <- read_csv(
-  "csv/crossings-01040002.csv",
-  col_types = cols(
-    id = col_integer(),
-    x_coord = col_double(),
-    y_coord = col_double(),
-    lon = col_double(),
-    lat = col_double()
-  )
+conn <- dbConnect(
+  drv = RPostgreSQL::PostgreSQL(),
+  dbname = config$db$dbname,
+  host = config$db$host,
+  port = config$db$port,
+  user = config$db$user
 )
 
+sql <- "SELECT id, type, x_coord, y_coord, lat, lon, bh.* FROM barriers b INNER JOIN barriers_huc bh ON b.id=bh.barrier_id WHERE bh.huc8 = $1"
+barriers <- dbGetQuery(conn, sql, param = list('01040002'))
+
+summary(barriers)
+
 # Circles w/ highlighting
-leaflet(crossings) %>%
+leaflet(barriers) %>%
   addTiles() %>%
   addCircles(
     lng = ~ lon,
@@ -70,7 +75,7 @@ leaflet(crossings) %>%
   )
 
 # CircleMarkers w/ clustering
-leaflet(crossings) %>%
+leaflet(barriers) %>%
   addTiles() %>%
   addCircleMarkers(
     lng = ~ lon,

@@ -7,11 +7,10 @@ library(jsonlite)
 library(pool)
 library(DBI)
 
-config <- read_json("../config.json")
-huc8 <- readRDS("../rds/huc8.rds")
-crossings <- readRDS("../rds/crossings.rds")
+source("../functions.R")
 
-effect_ecdf <- ecdf(crossings$effect_ln)
+config <- load_config("../../")
+huc8 <- readRDS("../rds/huc8.rds")
 
 pool <- dbPool(
   drv = RPostgreSQL::PostgreSQL(),
@@ -25,14 +24,14 @@ for (f in list.files(path = "../functions")) {
   source(file.path("../functions", f))
 }
 
-loadCrossings <- function(huc8) {
-  # cat("loadCrossings(", huc8, ")\n", sep = "")
+loadBarriers <- function(huc8) {
+  # cat("loadBarriers(", huc8, ")\n", sep = "")
 
   if (is.null(huc8) || length(huc8) == 0) {
-    stop(paste0("Failed to load crossings for huc8: ", huc8))
+    stop(paste0("Failed to load barriers for huc8: ", huc8))
   }
 
-  sql <- "select c.id, c.x_coord, c.y_coord, c.lon, c.lat from crossings_huc ch left join crossings c on ch.crossing_id=c.id where ch.huc8=$1";
+  sql <- "select c.id, c.x_coord, c.y_coord, c.lon, c.lat from barriers_huc ch left join barriers c on ch.barrier_id=c.id where ch.huc8=$1";
   dbGetQuery(pool, sql, param = list(huc8))
 }
 
@@ -48,12 +47,12 @@ ui <- fluidPage(
       column(
         width = 6,
         h2("Welcome!"),
-        p("The Critical Linkages Scenario Builder is a dynamic web application for evaluating the impact of stream crossing restoration across the Northeast US"),
+        p("The Critical Linkages Scenario Builder is a dynamic web application for evaluating the impact of stream barrier restoration across the Northeast US"),
         h3("Instructions"),
         tags$ol(
           tags$li("Select Watershed: select your target watershed (HUC8)"),
-          tags$li("Select Crossings: select one or more stream crossings within the target watershed"),
-          tags$li("Run Model: run the model to calculate the overall connectivity impacts due to restoration/removal of the selected crossings")
+          tags$li("Select Barriers: select one or more stream barriers within the target watershed"),
+          tags$li("Run Model: run the model to calculate the overall connectivity impacts due to restoration/removal of the selected barriers")
         ),
         actionButton(inputId = "welcomeNextBtn", label = "Get Started >>", class = "btn-success pull-right")
       )
@@ -71,7 +70,7 @@ ui <- fluidPage(
           div(
             id = "watershed-next",
             class = "text-right",
-            actionButton(inputId = "watershedNextBtn", label = "Next: Load Crossings >>", class = "btn-success")
+            actionButton(inputId = "watershedNextBtn", label = "Next: Load Barriers >>", class = "btn-success")
           )
         ),
 
@@ -81,26 +80,26 @@ ui <- fluidPage(
       )
     ),
     tabPanel(
-      title = "Step 2: Select Crossings",
-      value = "tab-crossings",
+      title = "Step 2: Select Barriers",
+      value = "tab-barriers",
       class = "disabled",
       column(
         width = 6,
-        h2("Select Stream Crossings"),
-        p("Select one or more stream crossings to evaluate for restoration/removal. Then click the \"Run Model\" button to calculate the overall change in aquatic connectivity."),
-        leafletOutput(outputId = "crossingsMap"),
+        h2("Select Stream Barriers"),
+        p("Select one or more stream barriers to evaluate for restoration/removal. Then click the \"Run Model\" button to calculate the overall change in aquatic connectivity."),
+        leafletOutput(outputId = "barriersMap"),
         hidden(
           div(
-            id = "crossingsTableDiv",
+            id = "barriersTableDiv",
             hr(),
-            actionButton(inputId = "crossingsNextBtn", label = "Next: Run Model >>", class = "pull-right btn-success"),
-            DTOutput(outputId = "crossingsTable"),
-            strong(textOutput("crossingsRowStatus")),
+            actionButton(inputId = "barriersNextBtn", label = "Next: Run Model >>", class = "pull-right btn-success"),
+            DTOutput(outputId = "barriersTable"),
+            strong(textOutput("barriersRowStatus")),
             hidden(
               div(
-                id = "crossingsRowButtons",
-                actionButton(inputId = "crossingsRemoveRow", label = "Remove"),
-                actionButton(inputId = "crossingsZoomToRow", label = "Zoom To")
+                id = "barriersRowButtons",
+                actionButton(inputId = "barriersRemoveRow", label = "Remove"),
+                actionButton(inputId = "barriersZoomToRow", label = "Zoom To")
               )
             )
           )
@@ -108,8 +107,8 @@ ui <- fluidPage(
 
         hr(),
         h4("Debug"),
-        verbatimTextOutput(outputId = "crossingsDebug"),
-        verbatimTextOutput(outputId = "crossingsDebugRow")
+        verbatimTextOutput(outputId = "barriersDebug"),
+        verbatimTextOutput(outputId = "barriersDebugRow")
       )
     ),
     tabPanel(
@@ -121,10 +120,7 @@ ui <- fluidPage(
         h4("Raw Results"),
         verbatimTextOutput(outputId = "modelResults"),
         hr(),
-        h4("Relative to Effect of All Crossings"),
-        textOutput(outputId = "modelEffectText"),
-        plotOutput(outputId = "modelEffectHist"),
-        actionButton(inputId = "modelPrevBtn", label = "<< Prev: Select Crossings", class = "btn-success")
+        actionButton(inputId = "modelPrevBtn", label = "<< Prev: Select Barriers", class = "btn-success")
       )
 
     )
@@ -143,9 +139,9 @@ server <- function(input, output, session) {
   # globals -----------------------------------------------------------------
 
   values <- reactiveValues(
-    selectedCrossingIds = integer(),   # crossing ids as integer vector
+    selectedBarrierIds = integer(),   # barrier ids as integer vector
     selectedHuc8Id = character(),      # selected huc8 id as character
-    crossings = NULL,                  # crossings data frame
+    barriers = NULL,                  # barriers data frame
     modelResults = NULL                # model results
   )
 
@@ -268,23 +264,23 @@ server <- function(input, output, session) {
 
   # reset reactive values on new HUC8 selection
   observeEvent(values$selectedHuc8Id, {
-    values$crossings <- NULL
-    values$selectedCrossingIds <- integer()
+    values$barriers <- NULL
+    values$selectedBarrierIds <- integer()
     values$modelResults <- NULL
   })
 
-  # next button -> tab-crossings
+  # next button -> tab-barriers
   observeEvent(input$watershedNextBtn, {
-    values$crossings <- loadCrossings(values$selectedHuc8Id)
+    values$barriers <- loadBarriers(values$selectedHuc8Id)
     updateTabsetPanel(
       session = session,
       inputId = "nav",
-      selected = "tab-crossings"
+      selected = "tab-barriers"
     )
   })
 
 
-  # crossings tab----------------------------------------------------------
+  # barriers tab----------------------------------------------------------
 
   # enable/disable Step 2 tab
   observe({
@@ -295,34 +291,34 @@ server <- function(input, output, session) {
     }
   })
 
-  # selected crossings data frame (from map)
-  selectedCrossings <- reactive({
-    if (length(values$selectedCrossingIds) == 0) {
-      shinyjs::hide(id = "crossingsTableDiv")
+  # selected barriers data frame (from map)
+  selectedBarriers <- reactive({
+    if (length(values$selectedBarrierIds) == 0) {
+      shinyjs::hide(id = "barriersTableDiv")
       return(NULL)
     }
 
-    shinyjs::show(id = "crossingsTableDiv")
-    values$crossings %>%
-      filter(id %in% values$selectedCrossingIds)
+    shinyjs::show(id = "barriersTableDiv")
+    values$barriers %>%
+      filter(id %in% values$selectedBarrierIds)
   })
 
-  # selected crossing row (from table)
-  selectedCrossingsRow <- reactive({
-    sel <- input$crossingsTable_rows_selected
+  # selected barrier row (from table)
+  selectedBarriersRow <- reactive({
+    sel <- input$barriersTable_rows_selected
 
     if (length(sel) == 0) {
       return(NULL)
     }
 
-    selectedCrossings()[sel, ]
+    selectedBarriers()[sel, ]
   })
 
   # render initial map
-  output$crossingsMap <- renderLeaflet({
-    if (is.null(values$crossings)) return()
+  output$barriersMap <- renderLeaflet({
+    if (is.null(values$barriers)) return()
 
-    leaflet(values$crossings) %>%
+    leaflet(values$barriers) %>%
       addTiles() %>%
       addProviderTiles(providers$Esri.WorldTopoMap, group = "Esri.WorldTopoMap") %>%
       addProviderTiles(providers$Esri.WorldImagery, group = "Esri.WorldImagery") %>%
@@ -342,7 +338,7 @@ server <- function(input, output, session) {
       ) %>%
       addCircles(
         layerId = ~ id,
-        group = "crossings",
+        group = "barriers",
         lng = ~ lon,
         lat = ~ lat,
         highlightOptions = highlightOptions(
@@ -358,55 +354,55 @@ server <- function(input, output, session) {
   })
 
   # render data table
-  output$crossingsTable <- renderDT({
-    selectedCrossings() %>%
+  output$barriersTable <- renderDT({
+    selectedBarriers() %>%
       datatable(selection = "single", options = list(searching = FALSE))
   })
 
   # render status bar
-  output$crossingsRowStatus <- renderText({
-    row <- selectedCrossingsRow()
+  output$barriersRowStatus <- renderText({
+    row <- selectedBarriersRow()
 
     if (is.null(row)) {
-      shinyjs::hide(id = "crossingsRowButtons")
+      shinyjs::hide(id = "barriersRowButtons")
       return("Select a row to remove it or zoom in")
     }
-    shinyjs::show(id = "crossingsRowButtons")
-    paste0("Selected crossing id: ", row$id[[1]])
+    shinyjs::show(id = "barriersRowButtons")
+    paste0("Selected barrier id: ", row$id[[1]])
   })
 
   # handle Zoom To button click
-  observeEvent(input$crossingsZoomToRow, {
-    row <- selectedCrossingsRow()
-    map <- leafletProxy("crossingsMap")
+  observeEvent(input$barriersZoomToRow, {
+    row <- selectedBarriersRow()
+    map <- leafletProxy("barriersMap")
 
     flyTo(map, lng = row$lon[[1]], lat = row$lat[[1]], zoom = 16)
   })
 
   # handle Remove button click
-  observeEvent(input$crossingsRemoveRow, {
-    row <- selectedCrossingsRow()
+  observeEvent(input$barriersRemoveRow, {
+    row <- selectedBarriersRow()
     id <- row$id[[1]]
 
-    values$selectedCrossingIds <- values$selectedCrossingIds[-which(values$selectedCrossingIds == id)]
+    values$selectedBarrierIds <- values$selectedBarrierIds[-which(values$selectedBarrierIds == id)]
   })
 
-  # handle map click (select/unselect crossings)
-  observeEvent(input$crossingsMap_shape_click, {
-    id <- input$crossingsMap_shape_click$id
+  # handle map click (select/unselect barriers)
+  observeEvent(input$barriersMap_shape_click, {
+    id <- input$barriersMap_shape_click$id
 
-    if (id %in% values$selectedCrossingIds) {
-      values$selectedCrossingIds <- values$selectedCrossingIds[-which(values$selectedCrossingIds == id)]
+    if (id %in% values$selectedBarrierIds) {
+      values$selectedBarrierIds <- values$selectedBarrierIds[-which(values$selectedBarrierIds == id)]
     } else {
-      values$selectedCrossingIds <- c(values$selectedCrossingIds, id)
+      values$selectedBarrierIds <- c(values$selectedBarrierIds, id)
     }
   })
 
-  # update map with selected crossings
-  observeEvent(values$selectedCrossingIds, {
-    x <- selectedCrossings()
+  # update map with selected barriers
+  observeEvent(values$selectedBarrierIds, {
+    x <- selectedBarriers()
 
-    m <- leafletProxy("crossingsMap")
+    m <- leafletProxy("barriersMap")
 
     m %>% clearGroup(group = "selected")
 
@@ -433,20 +429,20 @@ server <- function(input, output, session) {
   })
 
   # debug
-  output$crossingsDebug <- renderText({
-    if (is.null(values$crossings)) {
-      return("Crossings have not been loaded")
+  output$barriersDebug <- renderText({
+    if (is.null(values$barriers)) {
+      return("Barriers have not been loaded")
     }
     paste0(
-      "# Crossings: ", nrow(values$crossings), "\n",
-      "# Selected: ", length(values$selectedCrossingIds), "\n",
+      "# Barriers: ", nrow(values$barriers), "\n",
+      "# Selected: ", length(values$selectedBarrierIds), "\n",
       "Model Results Exist? ", !is.null(values$modelResults)
     )
   })
 
   # next button -> tab-model
-  observeEvent(input$crossingsNextBtn, {
-    df <- selectedCrossings() %>%
+  observeEvent(input$barriersNextBtn, {
+    df <- selectedBarriers() %>%
       select(id, x = x_coord, y = y_coord)
 
     if (nrow(df) > 0) {
@@ -484,55 +480,20 @@ server <- function(input, output, session) {
     elapsed <- output$elapsed
     results <- output$results
     paste0(
-      "# Crossings = ", nrow(output$data), "\n",
+      "# Barriers = ", nrow(output$data), "\n",
       "Delta = ", results$delta, "\n",
       "Effect = ", results$effect, "\n",
       "Elapsed Time = ", format(elapsed, digits = 2), " sec"
     )
   })
 
-  # render model effect histogram
-  output$modelEffectHist <- renderPlot({
-    output <- values$modelResults
-    if (is.null(output)) return()
 
-    crossings %>%
-      ggplot(aes(effect_ln)) +
-      geom_histogram(bins = 30) +
-      geom_vline(
-        aes(
-          xintercept = log(output$results$effect),
-          color = "Current\nScenario"
-        )
-      ) +
-      scale_color_manual("", values = "red") +
-      labs(
-        x = "Ln(Effect)",
-        y = "# Crossings",
-        title = "Histogram of Ln(Effect) for All Crossings",
-        subtitle = "Vertical red line shows value of current scenario"
-      )
-  })
-
-  # render model effect text
-  output$modelEffectText <- renderText({
-    output <- values$modelResults
-    if (is.null(output)) return()
-
-    effect <- output$results$effect
-    if (effect <= 1) effect = 1
-    paste0(
-      "Percentile: ",
-      scales::percent(effect_ecdf(log(effect)))
-    )
-  })
-
-  # prev button -> tab-crossings
+  # prev button -> tab-barriers
   observeEvent(input$modelPrevBtn, {
     updateTabsetPanel(
       session = session,
       inputId = "nav",
-      selected = "tab-crossings"
+      selected = "tab-barriers"
     )
   })
 }

@@ -1,9 +1,10 @@
-# load all graph tiles and then export to database
+# load all graph tiles and then export to csv for database import
 
 library(tidyverse)
-library(jsonlite)
 
-config <- read_json("config.json")
+source("functions.R")
+
+config <- load_config()
 
 tile_list <- read.table(paste(config$tiles$dir, 'graphtiles.txt', sep = ''), sep = '\t', header = TRUE)
 

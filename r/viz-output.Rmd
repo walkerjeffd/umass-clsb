@@ -22,8 +22,9 @@ library(DBI)
 theme_set(theme_bw())
 
 source("load-functions.R")
+source("functions.R")
 
-config <- read_json("config.json")
+config <- load_config()
 ```
 
 # Overview
@@ -32,9 +33,9 @@ In this document, I explore some different ways of visualizing the CLSB model re
 
 # Data Set
 
-I will focus on crossings within the West Brook watershed (`HUC12 = 010802010604`).
+I will focus on barriers within the West Brook watershed (`HUC12 = 010802010604`).
 
-Map shows the crossings within this watershed, color-coded by the ln(effect).
+Map shows the barriers within this watershed, color-coded by the ln(effect).
 
 ```{r, warning=FALSE}
 con <- dbConnect(
@@ -45,48 +46,24 @@ con <- dbConnect(
   user = config$db$user
 )
 
-crossing_ids <- tbl(con, "crossings_huc") %>% 
+barrier_ids <- tbl(con, "barriers_huc") %>% 
   filter(huc12 == "010802010604") %>% 
-  pull(crossing_id)
+  pull(barrier_id)
 
-db_crossings <- tbl(con, "crossings") %>% 
-  filter(id %in% crossing_ids) %>% 
-  select(id, lat, lon) %>% 
+barriers <- tbl(con, "barriers") %>% 
+  filter(id %in% barrier_ids) %>% 
+  select(id, x = x_coord, y = y_coord, lat, lon, effect_ln, effect, delta) %>% 
   collect()
-
-crossings <- read_tsv(
-  config$crossings$file,
-  col_types = cols(
-    .default = col_double(),
-    id = col_integer(),
-    group = col_integer(),
-    groupsize = col_integer(),
-    anysurveyed = col_integer(),
-    surveyed = col_integer(),
-    record_id = col_integer(),
-    crosscode = col_character(),
-    no_cross = col_integer(),
-    bridge_oob = col_integer(),
-    moved = col_integer(),
-    linkgroup = col_character(),
-    database = col_character(),
-    bridge = col_integer(),
-    roadclass = col_integer()
-  )
-) %>% 
-  filter(id %in% crossing_ids) %>% 
-  rename(x = `x-coord`, y = `y-coord`) %>% 
-  left_join(db_crossings, by = "id")
 ```
 
 ```{r basemap, cache=TRUE}
-basemap <- get_googlemap(center = c(lon = mean(range(crossings$lon)), lat = mean(range(crossings$lat))), zoom = 12)
+basemap <- get_googlemap(center = c(lon = mean(range(barriers$lon)), lat = mean(range(barriers$lat))), zoom = 12)
 ```
 
 ```{r}
 ggmap(basemap, extent = "device", darken = c(0.25, "white")) +
   geom_point(
-    data = crossings,
+    data = barriers,
     aes(x = lon, y = lat, fill = effect_ln),
     shape = 21,
     size = 3
@@ -94,21 +71,21 @@ ggmap(basemap, extent = "device", darken = c(0.25, "white")) +
   scale_fill_distiller("ln(Effect)", palette = "Spectral")
 ```
 
-Histograms show the distribution of effects for these crossings in log and linear space.
+Histograms show the distribution of effects for these barriers in log and linear space.
 
 ```{r, fig.width=10, fig.height=4}
-p1 <- crossings %>% 
+p1 <- barriers %>% 
   ggplot(aes(effect_ln)) +
   geom_histogram() +
-  labs(x = "ln(Effect)", y = "# Crossings")
-p2 <- crossings %>% 
+  labs(x = "ln(Effect)", y = "# Barriers")
+p2 <- barriers %>% 
   ggplot(aes(effect)) +
   geom_histogram() +
-  labs(x = "Effect", y = "# Crossings")
+  labs(x = "Effect", y = "# Barriers")
 grid.arrange(p1, p2, ncol = 2)
 ```
 
-> Given this information (effect of each individual crossing), how would the user go about selecting which crossing(s) to improve?
+> Given this information (effect of each individual barrier), how would the user go about selecting which barrier(s) to improve?
 
 > What other information would be useful to them?
 
@@ -205,7 +182,7 @@ edges %>%
   )
 ```
 
-Not all nodes are associated with a crossing. In fact, most are not. Non-crossing nodes exist to ensure consistent segmentation of the edges (30 m length), and to represent tributary confluences.
+Not all nodes are associated with a barrier. In fact, most are not. Non-barrier nodes exist to ensure consistent segmentation of the edges (30 m length), and to represent tributary confluences.
 
 ```{r, fig.width=6, fig.height=5}
 ggmap(basemap, extent = "device", darken = c(0.25, "white")) +
@@ -219,20 +196,20 @@ ggmap(basemap, extent = "device", darken = c(0.25, "white")) +
     size = 1
   ) +
   geom_point(
-    data = crossings,
-    aes(x = lon, y = lat, color = "Crossing"),
+    data = barriers,
+    aes(x = lon, y = lat, color = "Barrier"),
     size = 0.5
   ) +
-  scale_color_manual("", values = c("Node" = "black", "Crossing" = "red"))
+  scale_color_manual("", values = c("Node" = "black", "Barrier" = "red"))
 ```
 
 # Scenario Results
 
-Let's run the critical linkages tool to evaluate the single crossing, which is labeled as Target on this map.
+Let's run the critical linkages tool to evaluate the single barrier, which is labeled as Target on this map.
 
 ```{r}
-target <- crossings %>% 
-  filter(id == 569004)
+target <- barriers %>% 
+  filter(id == "c-569004")
 output <- graph.linkages(targets = target, source = config$tiles$dir)
 output$results$nodes <- output$results$nodes %>% 
   left_join(select(nodes, id, lat, lon), by = c("nodeid" = "id"))
@@ -248,7 +225,7 @@ output$results$edges$delta = output$results$deltas
 ```{r}
 ggmap(basemap, extent = "device", darken = c(0.25, "white")) +
   geom_point(
-    data = crossings,
+    data = barriers,
     aes(x = lon, y = lat, fill = effect_ln),
     shape = 21,
     size = 3
@@ -272,7 +249,7 @@ ggmap(basemap, extent = "device", darken = c(0.25, "white")) +
   scale_fill_distiller("ln(Effect)", palette = "Spectral")
 ```
 
-Improving this single crossing, the CLSB results give a delta of `r scales::comma(round(output$results$delta))` and an effect of `r scales::comma(round(output$results$effect))`. These two metrics are the sums of individual delta and effect values for each segment in the network localized around the target crossing. The delta and effect are computed from the change in the resistance kernel due to improvement of this crossing.
+Improving this single barrier, the CLSB results give a delta of `r scales::comma(round(output$results$delta))` and an effect of `r scales::comma(round(output$results$effect))`. These two metrics are the sums of individual delta and effect values for each segment in the network localized around the target barrier. The delta and effect are computed from the change in the resistance kernel due to improvement of this barrier.
 
 ## Network Maps
 
@@ -443,37 +420,37 @@ grid.arrange(p1, p2, nrow = 1)
 
 > Why is there a relatively large effect on the segments in the trib on the opposite bank?
 
-## Relative to the Effects Distribution of All Crossings
+## Relative to the Effects Distribution of All Barriers
 
-Another way to understand the meaning of this result is in how it relates to the effects of targeting all other crossings (individually).
+Another way to understand the meaning of this result is in how it relates to the effects of targeting all other barriers (individually).
 
-This figure plots the histograms of the effects for each crossing within the West Brook watershed on linear and logarithmic scales. The vertical red lines show the value of the target crossing evaluated above.
+This figure plots the histograms of the effects for each barrier within the West Brook watershed on linear and logarithmic scales. The vertical red lines show the value of the target barrier evaluated above.
 
 ```{r, fig.width=12, fig.height=4}
-p1 <- crossings %>% 
+p1 <- barriers %>% 
   ggplot(aes(effect)) +
   geom_histogram(binwidth = 500) +
   geom_vline(xintercept = output$results$effect, color = "red", size = 1) +
-  labs(x = "Effect", y = "# Crossings")
-p2 <- crossings %>% 
+  labs(x = "Effect", y = "# Barriers")
+p2 <- barriers %>% 
   ggplot(aes(effect_ln)) +
   geom_histogram(binwidth = 0.25) +
   geom_vline(xintercept = log(output$results$effect), color = "red", size = 1) +
-  labs(x = "ln(Effect)", y = "# Crossings")
+  labs(x = "ln(Effect)", y = "# Barriers")
 grid.arrange(p1, p2, nrow = 1)
 ```
 
 ```{r}
-ecdf_effect <- ecdf(crossings$effect)
-ecdf_effect_ln <- ecdf(crossings$effect_ln)
+ecdf_effect <- ecdf(barriers$effect)
+ecdf_effect_ln <- ecdf(barriers$effect_ln)
 ```
 
-A more useful way to plot this is a cumulative frequency distribution. These two plots show the empirical cumulative frequency distribution of individual effects for all crossings. The red points show the probability of the target crossing being evaluted in this section, which had an effect of `r scales::comma(round(output$results$effect))` that is located at the `r scales::percent(ecdf_effect(output$results$effect))` percentile.
+A more useful way to plot this is a cumulative frequency distribution. These two plots show the empirical cumulative frequency distribution of individual effects for all barriers. The red points show the probability of the target barrier being evaluted in this section, which had an effect of `r scales::comma(round(output$results$effect))` that is located at the `r scales::percent(ecdf_effect(output$results$effect))` percentile.
 
 ```{r, fig.width=12, fig.height=4}
 p1 <- data_frame(
-  effect = crossings$effect,
-  prob = ecdf_effect(crossings$effect)
+  effect = barriers$effect,
+  prob = ecdf_effect(barriers$effect)
 ) %>% 
   ggplot(aes(effect, prob)) +
   geom_point() +
@@ -502,8 +479,8 @@ p1 <- data_frame(
     y = "Cumulative Probability"
   )
 p2 <- data_frame(
-  effect_ln = crossings$effect_ln,
-  prob = ecdf_effect_ln(crossings$effect_ln)
+  effect_ln = barriers$effect_ln,
+  prob = ecdf_effect_ln(barriers$effect_ln)
 ) %>% 
   ggplot(aes(effect_ln, prob)) +
   geom_point() +

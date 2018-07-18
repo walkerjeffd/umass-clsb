@@ -16,20 +16,22 @@ library(jsonlite)
 
 theme_set(theme_bw())
 
+source("functions.R")
 source("load-functions.R")
 
-config <- read_json("config.json")
+config <- load_config()
 
-# load crossings
-crossings <- read_csv(
-  "csv/crossings.csv",
-  col_types = cols(
-    id = col_integer(),
-    x_coord = col_double(),
-    y_coord = col_double()
-  )
-) %>%
-  select(id, x = x_coord, y = y_coord)
+con <- src_postgres(
+  dbname = config$db$dbname,
+  host = config$db$host,
+  port = config$db$port,
+  user = config$db$user
+)
+
+# load barriers
+barriers <- tbl(con, "barriers") %>%
+  select(id, x = x_coord, y = y_coord) %>% 
+  collect()
 ```
 
 # Overview
@@ -51,11 +53,11 @@ graph.linkages
 
 # Single Target Crossing
 
-A single random crossing is first selected from all available crossings.
+A single random crossing is first selected from all available barriers.
 
 ```{r}
 set.seed(1234)
-targets <- sample_n(crossings, size = 1)
+targets <- sample_n(barriers, size = 1)
 print(targets)
 ```
 
@@ -95,7 +97,7 @@ targets$upgrades <- 0
 The first step is to get the graph tiles associated with the target crossing using the `get.graph.tiles()` function.
 
 ```{r, eval=FALSE}
-d <- get.graph.tiles(points = targets, bandwidth = bandwidth, search = search, tilesize = tilesize, internode = internode, cellsize = cellsize, fudge = fudge, source = source, upgrades = TRUE, chatter = chatter)
+d <- get.graph.tiles(points = targets, bandwidth = bandwidth, search = search, tilesize = tilesize, internode = internode, cellsize = cellsize, fudge = fudge, source = source, upgrades = TRUE, chatter = FALSE)
 ```
 
 Most arguments are passed in from `graph.linkages()`, plus these additional arguments:
@@ -476,16 +478,16 @@ And this is the result for the given target.
 
 # Multiple Targets
 
-First select multiple (say, four) crossings are at random.
+First select multiple (say, four) barriers at random.
 
 ```{r}
 set.seed(1234)
-targets <- sample_n(crossings, size = 4)
+targets <- sample_n(barriers, size = 4)
 print(targets)
 ```
 
 
-The results for these four crossings are:
+The results for these four barriers are:
 
 ```{r}
 result <- graph.linkages(targets = targets, source = config$tiles$dir)
@@ -875,5 +877,5 @@ Indeed, these match the results from above.
 c(delta = sum(targets$delta), effect = sum(targets$effect))
 ```
 
-> If multiple target crossings are selected, the total delta and effect is the sum of the individual effects if no two crossings are located near one another and thus each crossing impacts distinct set of graph edges
+> If multiple target barriers are selected, the total delta and effect is the sum of the individual effects if no two barriers are located near one another and thus each crossing impacts distinct set of graph edges
 
