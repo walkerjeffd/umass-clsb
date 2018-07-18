@@ -117,12 +117,20 @@ Merge the `culverts` and `dams` tables into a single `barriers table`.
 ./barriers.sh
 ```
 
-#### Barriers-Huc Lookup
+#### Barrier-HUC Lookup
 
-Run `db/derived/barriers-huc.sh` to create the `barriers_huc` lookup table, and prune huc tables (limit to extent of barriers).
+Run `db/derived/barrier-huc.sh` to create the `barrier_huc` lookup table, and prune huc tables (limit to extent of barriers).
 
 ```
-./barriers-huc.sh
+./barrier-huc.sh
+```
+
+#### Barrier-Node Lookup
+
+Run `db/derived/barrier-node.sh` to create the `barrier_node` lookup table.
+
+```
+./barrier-node.sh
 ```
 
 ## Model Code
