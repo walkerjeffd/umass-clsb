@@ -187,6 +187,72 @@ tiled$nodes %>%
   labs(x = NULL, y = NULL)
 ```
 
+### Trim Along Graph
+
+Given the nodes and edges within `maxdist` from target (`tiled`), trim the network again based on the resistance kernel using the `trim.along.graph()` function. 
+
+First find the node id corresponding to the target and append to the points data frame.
+
+```{r}
+p <- find.nodes(xys, tiled$nodes, fudge)
+points <- cbind(points, p)
+names(points)[dim(points)[2]] <- 'nodeid'
+print(points)
+```
+
+Assign node costs to zero for target nodes.
+
+```{r}
+nodecosts <- tiled$nodes$cost
+nodecosts[match(points$nodeid, tiled$nodes$nodeid)] <- points$upgrades
+```
+
+```{r}
+trimmed <- trim.along.graph(tiled$nodes, tiled$edges, p, bandwidth = bandwidth, cellsize = cellsize, nodecosts = nodecosts, chatter = FALSE)
+```
+
+The number of nodes has now been reduced from `r scales::comma(nrow(tiled$nodes))` to `r scales::comma(nrow(trimmed$nodes))`, and the number of edges reduced from `r scales::comma(nrow(tiled$edges))` to `r scales::comma(nrow(trimmed$edges))`.
+
+```{r}
+trimmed$nodes %>% 
+  ggplot() +
+  geom_segment(
+    data = trimmed$edges %>% 
+      left_join(
+        select(trimmed$nodes, node1 = nodeid, x1 = x, y1 = y),
+        by = "node1"
+      ) %>% 
+      left_join(
+        select(trimmed$nodes, node2 = nodeid, x2 = x, y2 = y),
+        by = "node2"
+      ),
+    aes(x = x1, xend = x2, y = y1, yend = y2, color = cost)
+  ) +
+  geom_point(aes(x, y, color = cost), size = 3) +
+  geom_point(
+    data = targets,
+    aes(x, y),
+    size = 4,
+    shape = 21,
+    color = "red",
+    fill = NA
+  ) +
+  coord_equal() +
+  scale_colour_distiller(palette = "Spectral", type = "div") +
+  labs(x = NULL, y = NULL)
+```
+
+Finally, export to JSON file for testing JavaScript implementation of `trim.along.graph()`.
+
+```{r}
+list(
+  targets = points,
+  input = tiled,
+  output = trimmed
+) %>% 
+  write_json("../test/data/graph-trim-single.json", pretty = TRUE, auto_unbox = TRUE)
+```
+
 
 ## Database Algorithm
 
@@ -470,6 +536,75 @@ tiled$nodes %>%
   scale_colour_distiller(palette = "Spectral", type = "div") +
   labs(x = NULL, y = NULL)
 ```
+
+
+### Trim Along Graph
+
+Given the nodes and edges within `maxdist` from target (`tiled`), trim the network again based on the resistance kernel using the `trim.along.graph()` function. 
+
+First find the node id corresponding to the target and append to the points data frame.
+
+```{r}
+p <- find.nodes(xys, tiled$nodes, fudge)
+points <- cbind(points, p)
+names(points)[dim(points)[2]] <- 'nodeid'
+print(points)
+```
+
+Assign node costs to zero for target nodes.
+
+```{r}
+nodecosts <- tiled$nodes$cost
+nodecosts[match(points$nodeid, tiled$nodes$nodeid)] <- points$upgrades
+```
+
+```{r}
+trimmed <- trim.along.graph(tiled$nodes, tiled$edges, p, bandwidth = bandwidth, cellsize = cellsize, nodecosts = nodecosts, chatter = FALSE)
+```
+
+The number of nodes has now been reduced from `r scales::comma(nrow(tiled$nodes))` to `r scales::comma(nrow(trimmed$nodes))`, and the number of edges reduced from `r scales::comma(nrow(tiled$edges))` to `r scales::comma(nrow(trimmed$edges))`.
+
+```{r}
+trimmed$nodes %>% 
+  ggplot() +
+  geom_segment(
+    data = trimmed$edges %>% 
+      left_join(
+        select(trimmed$nodes, node1 = nodeid, x1 = x, y1 = y),
+        by = "node1"
+      ) %>% 
+      left_join(
+        select(trimmed$nodes, node2 = nodeid, x2 = x, y2 = y),
+        by = "node2"
+      ),
+    aes(x = x1, xend = x2, y = y1, yend = y2, color = cost)
+  ) +
+  geom_point(aes(x, y, color = cost), size = 3) +
+  geom_point(
+    data = targets,
+    aes(x, y),
+    size = 4,
+    shape = 21,
+    color = "red",
+    fill = NA
+  ) +
+  coord_equal() +
+  scale_colour_distiller(palette = "Spectral", type = "div") +
+  labs(x = NULL, y = NULL)
+```
+
+Finally, export to JSON file for testing JavaScript implementation of `trim.along.graph()`.
+
+```{r}
+list(
+  targets = points,
+  input = tiled,
+  output = trimmed
+) %>% 
+  write_json("../test/data/graph-trim-multiple.json", pretty = TRUE, auto_unbox = TRUE)
+```
+
+
 
 ## Database Algorithm
 

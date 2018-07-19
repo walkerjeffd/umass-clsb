@@ -31,14 +31,21 @@
     i <- (1:dim(edges)[1])[!is.na(match(edges$node1, focalnodes))]       #    find row(s) in edges, 1st direction
     if(length(i) > 0) {
         graph.kern[i] <<- 1
+
         for(j in 1:length(i))                 #   for each edge,
             graph.kernel.spread(i[j], 2, account, nodes = nodes, edges = edges, nodecost = nodecosts)     #    recursively spread in each direction
     }
+
     i <- (1:dim(edges)[1])[!is.na(match(edges$node2, focalnodes))]       #    find row(s) in edges, 2nd direction
+    cat('rows', sprintf("%.0f", edges[i, "node2"]), "\n")
     if(length(i) > 0) {
         graph.kern[i] <<- 1
-        for(j in 1:length(i))                 #   for each edge,
+        cat('i', i, "\n")
+
+        for(j in 1:length(i))          {       #   for each edge,
+          cat('j', j, i[j], sprintf("%.0f", edges[i[j],"node1"]), sprintf("%.0f", edges[i[j],"node2"]), "\n")
             graph.kernel.spread(i[j], 1, account, nodes = nodes, edges = edges, nodecost = nodecosts)     #    recursively spread in each direction
+        }
     }
 
     edges <- edges[graph.kern != 0,]          # keep only edges we reached

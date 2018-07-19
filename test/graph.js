@@ -4,41 +4,103 @@
 const chai = require('chai');
 const jStat = require('jStat');
 const graph = require('../lib/graph/');
-const {
-  delta,
-  effect,
-  kernels,
-  nodes,
-  edges,
-  targets
-} = require('../lib/graph/test-data');
+
+const dataEffectsSingle = require('./data/graph-effects-single');
+const dataTrimSingle = require('./data/graph-trim-single');
+const dataTrimMultiple = require('./data/graph-trim-multiple');
 
 const expect = chai.expect; // eslint-disable-line
 
-edges.forEach((e, i) => {
-  e.index = i;
-});
-
 describe('graph', function () {
-  describe('#test-data', function () {
-    it('should have node costs exceed node upgrades', function () {
-      const costSum = jStat.sum(nodes.map(d => d.cost));
-      const upgradeSum = jStat.sum(nodes.map(d => d.upgrades));
-      expect(costSum).to.be.above(upgradeSum);
-    });
-    it('should have one target', function () {
-      expect(targets).to.be.lengthOf(1);
-    });
-    it('should have one node with upgrades equal to 0', function () {
-      const targetNodes = nodes.filter(d => d.cost !== d.upgrades);
-      const targetNode = targetNodes[0];
+  describe('#data-effects', function () {
+    describe('single target', function () {
+      const { edges, nodes, targets } = dataEffectsSingle;
+      edges.forEach((e, i) => {
+        e.index = i;
+      });
 
-      expect(targetNodes).to.be.lengthOf(1);
-      expect(targetNode.upgrades).to.equal(0);
+      it('should have node costs exceed node upgrades', function () {
+        const costSum = jStat.sum(nodes.map(d => d.cost));
+        const upgradeSum = jStat.sum(nodes.map(d => d.upgrades));
+        expect(costSum).to.be.above(upgradeSum);
+      });
+      it('should have one target', function () {
+        expect(targets).to.be.lengthOf(1);
+      });
+      it('should have one node with upgrades equal to 0', function () {
+        const targetNodes = nodes.filter(d => d.cost !== d.upgrades);
+        const targetNode = targetNodes[0];
+
+        expect(targetNodes).to.be.lengthOf(1);
+        expect(targetNode.upgrades).to.equal(0);
+      });
+    });
+  });
+
+  describe('#data-trim', function () {
+    describe('single target', function () {
+      const { input, output, targets } = dataTrimSingle;
+
+      it('should have input, output, and targets', function () {
+        expect(input).to.be.an('object');
+        expect(output).to.be.an('object');
+        expect(targets).to.be.an('array');
+      });
+    });
+  });
+
+  describe('#trim()', function () {
+    describe('single target', function () {
+      const { input, output, targets } = dataTrimSingle;
+      const out = graph.trim(targets, input.nodes, input.edges);
+
+      it('should return object with nodes and edges', function () {
+        expect(out).to.be.an('object');
+        expect(out).to.have.property('nodes');
+        expect(out).to.have.property('edges');
+      });
+
+      it('should return same nodes as R', function () {
+        expect(out.nodes).to.have.lengthOf(output.nodes.length);
+        expect(out.nodes.map(d => d.nodeid)).to.deep.equal(output.nodes.map(d => d.nodeid));
+      });
+
+      it('should return same edges as R', function () {
+        expect(out.edges).to.have.lengthOf(output.edges.length);
+        expect(out.edges.map(d => d.node1)).to.deep.equal(output.edges.map(d => d.node1));
+        expect(out.edges.map(d => d.node2)).to.deep.equal(output.edges.map(d => d.node2));
+      });
+    });
+    describe('multiple targets', function () {
+      const { input, output, targets } = dataTrimMultiple;
+      const out = graph.trim(targets, input.nodes, input.edges);
+
+      it('should return object with nodes and edges', function () {
+        expect(out).to.be.an('object');
+        expect(out).to.have.property('nodes');
+        expect(out).to.have.property('edges');
+      });
+
+      it('should return same nodes as R', function () {
+        expect(out.nodes).to.have.lengthOf(output.nodes.length);
+        expect(out.nodes.map(d => d.nodeid)).to.deep.equal(output.nodes.map(d => d.nodeid));
+      });
+
+      it('should return same edges as R', function () {
+        expect(out.edges).to.have.lengthOf(output.edges.length);
+        expect(out.edges.map(d => d.node1)).to.deep.equal(output.edges.map(d => d.node1));
+        expect(out.edges.map(d => d.node2)).to.deep.equal(output.edges.map(d => d.node2));
+      });
     });
   });
 
   describe('#kernel()', function () {
+    const {
+      edges, nodes, targets, kernels
+    } = dataEffectsSingle;
+    edges.forEach((e, i) => {
+      e.index = i;
+    });
     const base = graph.kernel(targets, nodes, edges, nodes.map(d => d.cost));
     const alt = graph.kernel(targets, nodes, edges, nodes.map(d => d.upgrades));
     it('should return array with length equal to number of edges', function () {
@@ -58,6 +120,12 @@ describe('graph', function () {
   });
 
   describe('#linkages()', function () {
+    const {
+      edges, nodes, targets, delta, effect
+    } = dataEffectsSingle;
+    edges.forEach((e, i) => {
+      e.index = i;
+    });
     const out = graph.linkages(targets, nodes, edges);
     it('should return object', function () {
       expect(out).to.be.a('object');

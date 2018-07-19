@@ -419,7 +419,7 @@ Export this expample to JSON for JavaScript app development.
 
 ```{r}
 r$results %>% 
-  write_json(path = "../lib/graph/test-data.json", pretty = TRUE, auto_unbox = TRUE)
+  write_json(path = "../test/data/graph-effects-single.json", pretty = TRUE, auto_unbox = TRUE)
 ```
 
 ```{r}
