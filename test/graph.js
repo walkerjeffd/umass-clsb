@@ -62,8 +62,14 @@ describe('graph', function () {
     it('should return object', function () {
       expect(out).to.be.a('object');
       expect(out).to.have.property('delta');
+      expect(out.delta).to.have.property('total');
+      expect(out.delta).to.have.property('values');
       expect(out).to.have.property('effect');
+      expect(out.effect).to.have.property('total');
+      expect(out.effect).to.have.property('values');
       expect(out).to.have.property('kernels');
+      expect(out.kernels).to.have.property('base');
+      expect(out.kernels).to.have.property('alt');
     });
     it('should reproduce delta and effect for test case', function () {
       expect(out.delta.total).to.be.closeTo(delta.total, 0.01);
