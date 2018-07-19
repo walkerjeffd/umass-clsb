@@ -759,7 +759,6 @@ n$nodes %>%
 ```
 
 ```{r}
-
 n$nodes %>% 
   ggplot() +
   geom_segment(
@@ -864,8 +863,8 @@ delta <- numeric()
 effect <- numeric()
 for (i in seq(1, nrow(targets))) {
   r <- graph.linkages(targets = targets[i, c("id", "x", "y")], source = config$tiles$dir)
-  delta <- c(delta, r$results$delta)
-  effect <- c(effect, r$results$effect)
+  delta <- c(delta, r$results$delta$total)
+  effect <- c(effect, r$results$effect$total)
 }
 targets <- cbind(targets, delta, effect)
 targets

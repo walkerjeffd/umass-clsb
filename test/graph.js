@@ -5,7 +5,8 @@ const chai = require('chai');
 const jStat = require('jStat');
 const graph = require('../lib/graph/');
 const {
-  effects,
+  delta,
+  effect,
   kernels,
   nodes,
   edges,
@@ -56,7 +57,7 @@ describe('graph', function () {
     });
   });
 
-  describe.skip('#linkages()', function () {
+  describe('#linkages()', function () {
     const out = graph.linkages(targets, nodes, edges);
     it('should return object', function () {
       expect(out).to.be.a('object');
@@ -65,8 +66,8 @@ describe('graph', function () {
       expect(out).to.have.property('kernels');
     });
     it('should reproduce delta and effect for test case', function () {
-      expect(out.delta.total).to.be.closeTo(effects.delta.total, 0.001);
-      expect(out.effect.total).to.be.closeTo(effects.effect.total, 0.001);
+      expect(out.delta.total).to.be.closeTo(delta.total, 0.01);
+      expect(out.effect.total).to.be.closeTo(effect.total, 0.01);
     });
   });
 });

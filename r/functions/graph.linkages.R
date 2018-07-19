@@ -1,6 +1,6 @@
 'graph.linkages' <- function(targets, internode = 200, tilesize = 400, bandwidth = 5000, search = 1.5, cellsize = 30, fudge = 75,
                              source = paste('z:/working/clsb/RDS', tilesize, '/', internode, '/', sep = ''), chatter = FALSE,
-                             scaleby = 0.001, write = FALSE, multiplier = 1000 * 0.2495 * 24, verbose = FALSE)
+                             scaleby = 0.001, write = FALSE, multiplier = 1000 * 0.2495 * 24)
 
 # graph.linkages
 # Do graph-based Critical Linkages I for specified target nodes
@@ -52,30 +52,30 @@
     base <- alt <- rep(0, dim(edges)[1])        # kernel results
     for(i in 1:dim(edges)[1]) {                 # for each edge, build base and alt kernels
       edge_kern_base <- graph.kernel(i, nodes, edges, multiplier = multiplier)$kern
-      edge_kern_alt <- graph.kernel(i, nodes, edges, nodecost = nodes$upgrades, multiplier = multiplier)$kern
-      if (verbose) cat(i, edge_kern_base, "\n")
       base <- base + edge_kern_base * edges$length[i] / cellsize      # kernel x # of focal cells
-      if (verbose) cat(edges$length[i] / cellsize, base, "\n")
+
+      edge_kern_alt <- graph.kernel(i, nodes, edges, nodecost = nodes$upgrades, multiplier = multiplier)$kern
       alt <- alt + edge_kern_alt * edges$length[i] / cellsize
     }
 
-    if (verbose) cat("base (final):", base, "\n")
-
     base <- base * edges$length / cellsize      # adjust for # of cells in each kernel
     alt <- alt * edges$length / cellsize
-
-    if (verbose) cat("base (adjusted):", base, "\n")
 
     deltas <- (alt - base) / scaleby
     effects <- deltas * edges$value / (edges$length / cellsize)
 
     z <- list(
-      delta = sum(deltas),
-      deltas = deltas,
-      effect = sum(effects),
-      effects = effects,
+      delta = list(
+        total = sum(deltas),
+        values = deltas
+      ),
+      effect = list(
+        total = sum(effects),
+        values = effects
+      ),
       edges = edges,
       nodes = nodes,
+      targets = targets,
       kernels = list(
         base = base,
         alt = alt

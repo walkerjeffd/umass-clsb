@@ -21,6 +21,7 @@
 {
     n <- match(edges[edge, direction], nodes$nodeid)# next node
     a <- account - nodecost[n]                      # subtract cost
+
     if (a <= 0)                                     # if account is depleted, we're done
         return(NULL)
     e <- (1:dim(edges)[1])[(edges$node1 %in% nodes$nodeid[n]) | (edges$node2 %in% nodes$nodeid[n])]    # adjacent edges
@@ -30,6 +31,7 @@
         graph.kern[i] <<- max(a - edgecost[i], 0)   # subtract edge cost (but don't go below zero)
         if (graph.kern[i] <= 0)                     # if account is depleted, we're done
             return(NULL)
-        graph.kernel.spread(i, (edges$node1[i] == nodes$nodeid[n]) + 1, graph.kern[i], nodes = nodes, edges = edges)
+        graph.kernel.spread(i, (edges$node1[i] == nodes$nodeid[n]) + 1, graph.kern[i], nodes = nodes, edges = edges, nodecost = nodecost)
+        # graph.kernel.spread(i, (edges$node1[i] == nodes$nodeid[n]) + 1, graph.kern[i], nodes = nodes, edges = edges)
     }
 }
