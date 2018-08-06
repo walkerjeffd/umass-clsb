@@ -5,7 +5,7 @@ const chai = require('chai');
 const jStat = require('jStat');
 const graph = require('../lib/graph/');
 
-const dataEffectsSingle = require('./data/graph-effects-single');
+const dataEffectsSingle = require('./data/graph-effects-single'); // r/kern
 const dataTrimSingle = require('./data/graph-trim-single');
 const dataTrimMultiple = require('./data/graph-trim-multiple');
 
