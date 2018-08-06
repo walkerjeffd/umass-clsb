@@ -1,6 +1,6 @@
 'graph.linkages' <- function(targets, internode = 200, tilesize = 400, bandwidth = 5000, search = 1.5, cellsize = 30, fudge = 75,
                              source = paste('z:/working/clsb/RDS', tilesize, '/', internode, '/', sep = ''), chatter = FALSE,
-                             scaleby = 0.001, write = FALSE, multiplier = 1000 * 0.2495 * 24)
+                             scaleby = 0.001, write = FALSE, multiplier = 1000 * 0.2495 * 4.88)
 
 # graph.linkages
 # Do graph-based Critical Linkages I for specified target nodes
@@ -51,18 +51,16 @@
     # now build kernels for both base and alt scenarios
     base <- alt <- rep(0, dim(edges)[1])        # kernel results
     for(i in 1:dim(edges)[1]) {                 # for each edge, build base and alt kernels
-      edge_kern_base <- graph.kernel(i, nodes, edges, multiplier = multiplier)$kern
-      base <- base + edge_kern_base * edges$length[i] / cellsize      # kernel x # of focal cells
-
-      edge_kern_alt <- graph.kernel(i, nodes, edges, nodecost = nodes$upgrades, multiplier = multiplier)$kern
-      alt <- alt + edge_kern_alt * edges$length[i] / cellsize
+       base <- base + graph.kernel(i, nodes, edges, multiplier = multiplier)$kern * edges$length[i] / cellsize      # kernel x # of focal cells
+       alt <- alt + graph.kernel(i, nodes, edges, nodecost = nodes$upgrades, multiplier = multiplier)$kern * edges$length[i] / cellsize
     }
 
     base <- base * edges$length / cellsize      # adjust for # of cells in each kernel
     alt <- alt * edges$length / cellsize
-
     deltas <- (alt - base) / scaleby
     effects <- deltas * edges$value / (edges$length / cellsize)
+
+    # z <- list(delta = sum(deltas), effect = sum(deltas * edges$value / (edges$length / cellsize)))
 
     z <- list(
       delta = list(
@@ -81,6 +79,7 @@
         alt = alt
       )
     )
+
 
     elapsed <- proc.time()[3] - a
     # cat('\nTotal elapsed time = ', elapsed, ' sec\n', sep = '')

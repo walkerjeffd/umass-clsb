@@ -56,16 +56,16 @@ The initial arguments to `graph.linkages()` are
 
 ```{r}
 # arguments to graph.linkages
-targets = targets               # df of x,y locations of target culverts/dams
-source = config$tiles$dir       # folder containing tiles
-internode = 200                 # internode interval (gives maximum edge length)
-tilesize = 400                  # size of tiles
-bandwidth = 5000                # bandwidth (m)
-search = 1.5                    # search distance (multiple of bandwidth)
-cellsize = 30                   # size of cells (m)
-fudge = 75                      # how far (m) do we allow x,ys to be from actual culverts?
-scaleby = 0.001                 # parameter from CAPS LINKAGES; use 0.001
-multiplier = 1000 * 0.2495 * 24 # multiply scaled kernels to match AQCONNECT
+targets = targets                 # df of x,y locations of target culverts/dams
+source = config$tiles$dir         # folder containing tiles
+internode = 200                   # internode interval (gives maximum edge length)
+tilesize = 400                    # size of tiles
+bandwidth = 5000                  # bandwidth (m)
+search = 1.5                      # search distance (multiple of bandwidth)
+cellsize = 30                     # size of cells (m)
+fudge = 75                        # how far (m) do we allow x,ys to be from actual culverts?
+scaleby = 0.001                   # parameter from CAPS LINKAGES; use 0.001
+multiplier = 1000 * 0.2495 * 4.88 # multiply scaled kernels to match AQCONNECT
 ```
 
 First, set the upgrade cost to zero for the target node:
@@ -182,7 +182,7 @@ For the first edge (`i = 1`), initialize kernel with all zeros except first elem
 ```{r}
 edge <- 1
 nodecost <- nodes$cost
-bench = 62620.5
+bench <- 62620.5
 
 # initalize kernel to zeros
 graph.kern <- rep(0, dim(edges)[1])
