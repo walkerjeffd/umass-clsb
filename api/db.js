@@ -78,9 +78,35 @@ function getNetwork(barrierIds) {
       .then(edges => ({ edges, nodes, barriers })));
 }
 
+function getBarriersInGeoJSON(feature) {
+  const sql = `
+    SELECT id, x_coord::real, y_coord::real, effect::real, effect_ln::real, delta::real, type, lat, lon
+    FROM barriers b
+    WHERE ST_Within(
+      b.geom,
+      ST_Transform(
+        ST_SetSRID(
+          ST_GeomFromGeoJSON(:geometry),
+          4326
+        ),
+        5070
+      )
+    )
+  `;
+
+  const qry = knex
+    .raw(sql, {
+      geometry: feature.geometry
+    });
+
+  return qry
+    .then(result => result.rows);
+}
+
 module.exports = {
   getTest,
   getNodes,
   getEdges,
-  getNetwork
+  getNetwork,
+  getBarriersInGeoJSON
 };

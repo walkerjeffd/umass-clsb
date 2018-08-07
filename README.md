@@ -23,6 +23,12 @@ The development version of the shiny app is available at: http://shiny.ecosheds.
 
 Download WBD dataset (`NATIONAL_WBD_GDB.zip`) from [USGS NHD website](https://nhd.usgs.gov/data.html) and extract geodatabase from `NATIONAL_WBD_GDB.zip`.
 
+### Town Boundaries
+
+[National Boundary Dataset from The National Map](https://www.sciencebase.gov/catalog/item/4f70b219e4b058caae3f8e19)
+
+Shapefiles: [ftp://rockyftp.cr.usgs.gov/vdelivery/Datasets/Staged/GovtUnit/Shape/]()
+
 ### Graph Tiles
 
 The graph tiles are stored in a series of RDS binary data files.
@@ -177,4 +183,28 @@ Create symbolic link to shiny app for deployment
 ```
 cd ~/ShinyApps
 ln -s ~/path/to/umass-clsb/r/shiny ~/ShinyApps/clsb
+```
+
+## Web Application
+
+Created using vue-cli 3.
+
+### Project setup
+```
+npm install
+```
+
+### Compiles and hot-reloads for development
+```
+npm run serve
+```
+
+### Compiles and minifies for production
+```
+npm run build
+```
+
+### Lints and fixes files
+```
+npm run lint
 ```

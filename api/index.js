@@ -11,7 +11,7 @@ const db = require('./db');
 
 const config = {
   api: {
-    port: 8080
+    port: 8090
   }
 };
 
@@ -39,6 +39,9 @@ const allowCrossDomain = (req, res, next) => {
 };
 app.use(allowCrossDomain);
 
+// static
+app.use('/static', express.static('static'));
+
 // routes
 app.get('/test', (req, res, next) => {
   db.getTest()
@@ -48,10 +51,14 @@ app.get('/test', (req, res, next) => {
 
 app.get('/nodes', (req, res, next) => {
   db.getNetwork(['c-244844', 'c-244895', 'c-282781', 'c-361794'])
-    .then((result) => {
-      console.log(result.barriers.length, result.nodes.length, result.edges.length);
-      return res.status(200).json({ status: 'ok', data: result });
-    })
+    .then(result => res.status(200).json({ status: 'ok', data: result }))
+    .catch(next);
+});
+
+app.post('/barriers/geojson', (req, res, next) => {
+  console.log('/barriers/geojson', req.body.feature);
+  db.getBarriersInGeoJSON(req.body.feature)
+    .then(result => res.status(200).json({ status: 'ok', data: result }))
     .catch(next);
 });
 
