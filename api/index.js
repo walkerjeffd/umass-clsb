@@ -56,7 +56,6 @@ app.get('/nodes', (req, res, next) => {
 });
 
 app.post('/barriers/geojson', (req, res, next) => {
-  console.log('/barriers/geojson', req.body.feature);
   db.getBarriersInGeoJSON(req.body.feature)
     .then(result => res.status(200).json({ status: 'ok', data: result }))
     .catch(next);
