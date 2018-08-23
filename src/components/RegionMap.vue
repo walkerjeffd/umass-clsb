@@ -6,7 +6,7 @@
     </div>
     <div class="region-map"></div>
     <div>
-      <button @click.prevent="loadRegion">Done!</button>
+      <button @click.prevent="loadRegion">Load Barriers</button>
     </div>
   </div>
 </template>

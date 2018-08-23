@@ -50,7 +50,7 @@ app.get('/test', (req, res, next) => {
 });
 
 app.get('/nodes', (req, res, next) => {
-  db.getNetwork(['c-244844', 'c-244895', 'c-282781', 'c-361794'])
+  db.getNetwork(req.body.barrierIds)
     .then(result => res.status(200).json({ status: 'ok', data: result }))
     .catch(next);
 });
