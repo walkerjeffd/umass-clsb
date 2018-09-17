@@ -5,9 +5,6 @@
       ({{ huc8.selected.feature.properties.huc8 }})
     </div>
     <div class="region-map"></div>
-    <div>
-      <button @click.prevent="loadRegion">Load Barriers</button>
-    </div>
   </div>
 </template>
 
@@ -111,6 +108,8 @@ export default {
       if (areaKm2 > 1000) {
         alert(`Polygon area (${areaKm2.toFixed(1)} km2) exceeds maximum (1000 km2)`);
       }
+
+      this.loadRegion();
     });
 
     this.setType(this.type, true);
@@ -131,13 +130,18 @@ export default {
       }
       this.$emit('loadRegion', feature);
     },
+    clearRegion() {
+      this.$emit('loadRegion', null);
+    },
     selectHuc8(feature) {
       this.huc8.selected.feature = feature;
       this.huc8.selected.layer.clearLayers();
       const layer = L.geoJson(this.huc8.selected.feature).getLayers()[0].setStyle({ color: '#FF0000' });
       this.huc8.selected.layer.addLayer(layer);
+      this.loadRegion();
     },
     setType(type, initial) {
+      this.clearRegion();
       if (initial && this.feature) {
         // load initial feature
         if (this.type === 'draw') {
@@ -175,7 +179,6 @@ export default {
         this.map.removeLayer(this.huc8.features.layer);
         this.map.removeLayer(this.huc8.selected.layer);
       }
-
     }
   }
 };

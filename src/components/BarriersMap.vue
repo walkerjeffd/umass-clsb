@@ -18,7 +18,7 @@ export default {
       layers: {
         barriers: new L.LayerGroup(),
         selected: new L.LayerGroup(),
-        region: new L.geoJson()
+        region: new L.geoJson() // eslint-disable-line
       }
     };
   },

@@ -62,7 +62,7 @@ describe('graph', function () {
 
       it('should return same nodes as R', function () {
         expect(out.nodes).to.have.lengthOf(output.nodes.length);
-        expect(out.nodes.map(d => d.nodeid)).to.deep.equal(output.nodes.map(d => d.nodeid));
+        expect(out.nodes.map(d => d.node_id)).to.deep.equal(output.nodes.map(d => d.node_id));
       });
 
       it('should return same edges as R', function () {
@@ -83,7 +83,7 @@ describe('graph', function () {
 
       it('should return same nodes as R', function () {
         expect(out.nodes).to.have.lengthOf(output.nodes.length);
-        expect(out.nodes.map(d => d.nodeid)).to.deep.equal(output.nodes.map(d => d.nodeid));
+        expect(out.nodes.map(d => d.node_id)).to.deep.equal(output.nodes.map(d => d.node_id));
       });
 
       it('should return same edges as R', function () {

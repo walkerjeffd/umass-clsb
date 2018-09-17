@@ -34,7 +34,6 @@
 
       <region-map :type="region.type" :feature="region.feature" @loadRegion="loadRegion">
       </region-map>
-      <p>You have loaded {{ barriers.length }} barriers.</p>
       <button @click="prevStep">Prev</button>
       <button @click="nextStep">Next</button>
     </div>
@@ -76,7 +75,7 @@ export default {
         author: ''
       },
       region: {
-        type: '',
+        type: 'huc8',
         feature: null
       }
     };
@@ -87,23 +86,30 @@ export default {
   methods: {
     ...mapActions(['createProject', 'setBarriers']),
     nextStep() {
-      if (this.step < 3) {
+      if (this.step === 3) return;
+      if (this.step === 2) {
+        if (!this.region.feature) {
+          alert('No region selected');
+          return;
+        }
+
+        axios.post('/barriers/geojson', {
+          feature: this.region.feature
+        }).then((response) => {
+          const barriers = response.data.data;
+          this.setBarriers(barriers);
+          this.step += 1;
+        });
+      } else {
         this.step += 1;
       }
     },
     prevStep() {
-      if (this.step > 1) {
-        this.step -= 1;
-      }
+      if (this.step === 1) return;
+      this.step -= 1;
     },
     loadRegion(feature) {
-      axios.post('/barriers/geojson', {
-        feature
-      }).then((response) => {
-        const barriers = response.data.data;
-        this.region.feature = feature;
-        return this.setBarriers(barriers);
-      });
+      this.region.feature = feature;
     },
     submit() {
       this.createProject({

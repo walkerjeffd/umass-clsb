@@ -12,10 +12,14 @@
         @remove-barrier="removeBarrierFromScenario">
       </barriers-map>
       <div>
-        <h4><span v-if="scenario.isNew">New</span><span v-if="!scenario.isNew">Edit</span> Scenario</h4>
+        <h4>
+          <span v-if="scenario.status === 'new'">New</span>
+          <span v-if="scenario.status !== 'new'">Edit</span>
+          Scenario
+        </h4>
         <div>
           id: {{ scenario.id }}<br>
-          new: {{ scenario.isNew }}<br>
+          status: {{ scenario.status }}<br>
           # barriers selected: {{ scenario.barriers.length }}
           <ul>
             <li v-for="barrier in scenario.barriers" :key="barrier.id">
@@ -37,6 +41,7 @@
             <li v-for="s in scenarios" :key="s.id">
               {{ s.id }}
               (# barriers = {{ s.barriers.length }})
+              (status = {{ s.status }})
               (<a href="#" @click.prevent="loadScenario(s)">load</a>)
               (<a href="#" @click.prevent="deleteScenario(s)">delete</a>)
             </li>

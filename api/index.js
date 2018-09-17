@@ -49,7 +49,7 @@ app.get('/test', (req, res, next) => {
     .catch(next);
 });
 
-app.get('/nodes', (req, res, next) => {
+app.post('/network', (req, res, next) => {
   db.getNetwork(req.body.barrierIds)
     .then(result => res.status(200).json({ status: 'ok', data: result }))
     .catch(next);

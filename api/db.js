@@ -22,9 +22,10 @@ function getTest() {
 
 function getBarriers(barrierIds) {
   const sql = `
-    SELECT id, x_coord, y_coord, effect, effect_ln, delta, type, lat, lon
-    FROM barriers
-    WHERE id = ANY (:barrierIds)
+    SELECT b.id, b.x_coord::real, b.y_coord::real, b.effect::real, b.effect_ln::real, b.delta::real, b.type, b.lat, b.lon, bn.node_id
+    FROM barriers b
+    LEFT JOIN barrier_node bn ON b.id = bn.barrier_id
+    WHERE b.id = ANY (:barrierIds)
   `;
 
   const qry = knex
@@ -38,7 +39,7 @@ function getBarriers(barrierIds) {
 
 function getNodes(barrierIds) {
   const sql = `
-    SELECT DISTINCT n.id AS nodeid, n.x, n.y, n.cost
+    SELECT DISTINCT n.id AS node_id, n.x, n.y, n.cost
     FROM nodes n, barriers b
     WHERE ST_Contains(ST_Buffer(b.geom, :maxdist), n.geom)
     AND b.id = ANY (:barrierIds)
@@ -73,15 +74,17 @@ function getEdges(nodeIds) {
 
 function getNetwork(barrierIds) {
   return getBarriers(barrierIds)
-    .then(barriers => getNodes(barrierIds).then(nodes => ({ barriers, nodes })))
-    .then(({ barriers, nodes }) => getEdges(nodes.map(d => d.nodeid))
-      .then(edges => ({ edges, nodes, barriers })));
+    .then(targets => getNodes(barrierIds)
+      .then(nodes => ({ targets, nodes })))
+    .then(({ targets, nodes }) => getEdges(nodes.map(d => d.node_id))
+      .then(edges => ({ targets, nodes, edges })));
 }
 
 function getBarriersInGeoJSON(feature) {
   const sql = `
-    SELECT id, x_coord::real, y_coord::real, effect::real, effect_ln::real, delta::real, type, lat, lon
+    SELECT b.id, b.x_coord::real, b.y_coord::real, b.effect::real, b.effect_ln::real, b.delta::real, b.type, b.lat, b.lon, bn.node_id
     FROM barriers b
+    LEFT JOIN barrier_node bn ON b.id = bn.barrier_id
     WHERE ST_Within(
       b.geom,
       ST_Transform(
