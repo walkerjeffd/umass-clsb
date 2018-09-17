@@ -108,6 +108,7 @@ function getBarriersInGeoJSON(feature) {
 
 module.exports = {
   getTest,
+  getBarriers,
   getNodes,
   getEdges,
   getNetwork,
