@@ -208,3 +208,54 @@ npm run build
 ```
 npm run lint
 ```
+
+## Data Types
+
+Data types returned from API.
+
+```js
+barrier = {
+  id: '<string>',
+  x_coord: '<number>',
+  y_coord: '<number>',
+  effect: '<number>',
+  effect_ln: '<number>',
+  delta: '<number>',
+  type: '"dam"|"culvert"',
+  lat: '<number>',
+  lon: '<number>',
+  node_id: '<string>',
+}
+node = {
+  node_id: '<string>',
+  x: '<number>',
+  y: '<number>',
+  lat: '<number>',
+  lon: '<number>',
+  cost: '<number>',
+}
+edge = {
+  id: '<number>',
+  start_id: '<string>',
+  end_id: '<string>',
+  length: '<number>',
+  cost: '<number>',
+  value: '<number>'
+}
+```
+
+## Algorithm Translation
+
+Translated original R code functions (`r/functions/`) to database queries and JavaScript module (`lib/graph`).
+
+### `trim.along.graph()`
+
+The `trim.along.graph()` was translated to `graph.trim()`.
+
+`graph.trim()` takes arguments:
+
+- `nodes`: list of nodes
+- `edges`: list of edges
+
+
+
