@@ -14,7 +14,6 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 
 library(tidyverse)
-library(jsonlite)
 library(ggmap)
 library(gridExtra)
 library(DBI)
@@ -242,16 +241,6 @@ trimmed$nodes %>%
   labs(x = NULL, y = NULL)
 ```
 
-Finally, export to JSON file for testing JavaScript implementation of `trim.along.graph()`.
-
-```{r}
-list(
-  targets = points,
-  input = tiled,
-  output = trimmed
-) %>% 
-  write_json("../test/data/graph-trim-single.json", pretty = TRUE, auto_unbox = TRUE)
-```
 
 
 ## Database Algorithm
@@ -592,18 +581,6 @@ trimmed$nodes %>%
   scale_colour_distiller(palette = "Spectral", type = "div") +
   labs(x = NULL, y = NULL)
 ```
-
-Finally, export to JSON file for testing JavaScript implementation of `trim.along.graph()`.
-
-```{r}
-list(
-  targets = points,
-  input = tiled,
-  output = trimmed
-) %>% 
-  write_json("../test/data/graph-trim-multiple.json", pretty = TRUE, auto_unbox = TRUE)
-```
-
 
 
 ## Database Algorithm

@@ -412,17 +412,3 @@ edges_kern_base %>%
     axis.title = element_blank()
   )
 ```
-
-# Export to JSON
-
-Export this expample to JSON for JavaScript app development.
-
-```{r}
-r$results %>% 
-  write_json(path = "../test/data/graph-effects-single.json", pretty = TRUE, auto_unbox = TRUE)
-```
-
-```{r}
-r <- graph.linkages(targets, internode = internode, tilesize = tilesize, bandwidth = bandwidth, search = search, cellsize = cellsize, fudge = fudge, source = source, chatter = FALSE, scaleby = scaleby, write = FALSE, multiplier = multiplier)
-```
-
