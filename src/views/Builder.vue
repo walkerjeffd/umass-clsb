@@ -39,9 +39,13 @@
         <div>
           <ul>
             <li v-for="s in scenarios" :key="s.id">
-              {{ s.id }}
-              (# barriers = {{ s.barriers.length }})
-              (status = {{ s.status }})
+              Scenario ID: {{ s.id }} <br/>
+              # Barriers = {{ s.barriers.length }} <br/>
+              Status = {{ s.status }}<br/>
+              <span v-if="s.results">
+                Delta = {{ s.results.delta.total | number }}<br/>
+                Effect = {{ s.results.effect.total | number }}<br/>
+              </span>
               (<a href="#" @click.prevent="loadScenario(s)">load</a>)
               (<a href="#" @click.prevent="deleteScenario(s)">delete</a>)
             </li>
@@ -59,6 +63,7 @@
 <script>
 import { mapGetters, mapActions } from 'vuex';
 
+import { number } from '@/filters';
 import BarriersMap from '@/components/BarriersMap.vue';
 
 export default {
@@ -67,6 +72,9 @@ export default {
   },
   computed: {
     ...mapGetters(['project', 'barriers', 'scenario', 'scenarios', 'scenarioIdSeq'])
+  },
+  filters: {
+    number
   },
   mounted() {
     this.newScenario();

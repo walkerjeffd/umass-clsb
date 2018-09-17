@@ -84,38 +84,22 @@ export default new Vuex.Store({
       commit('SET_SCENARIO', cloneScenario(scenario));
     },
     saveScenario({ commit }, scenario) {
-      // const barrierIds = scenario.barriers.map(d => d.id);
-      const barrierIds = ['c-177097'];
+      const barrierIds = scenario.barriers.map(d => d.id);
+
       scenario.status = 'fetching';
       commit('SAVE_SCENARIO', scenario);
       axios.post('/network', {
         barrierIds
       }).then(response => response.data.data)
         .then((network) => {
-          const { targets, nodes, edges } = network;
-          targets.forEach((d) => {
-            d.upgrades = 0;
-          });
-          const targetNodeIds = targets.map(d => d.node_id);
+          const { targets } = network;
 
-          nodes.forEach((d) => {
-            if (targetNodeIds.includes(d.node_id)) {
-              d.upgrades = 0;
-            } else {
-              d.upgrades = d.cost;
-            }
-          });
-          scenario.network = network;
-          scenario.status = 'trimming';
-          commit('SAVE_SCENARIO', scenario);
-
-          scenario.trimmedNetwork = graph.trim(targets, nodes, edges);
-          const trimmedNodes = scenario.trimmedNetwork.nodes;
-          const trimmedEdges = scenario.trimmedNetwork.edges;
           scenario.status = 'calculating';
           commit('SAVE_SCENARIO', scenario);
+          scenario.network = graph.trim(targets, network.nodes, network.edges);
+          const { nodes, edges } = scenario.network;
+          scenario.results = graph.linkages(targets, nodes, edges);
 
-          scenario.results = graph.linkages(targets, trimmedNodes, trimmedEdges);
           scenario.status = 'finished';
           commit('SAVE_SCENARIO', scenario);
         });
