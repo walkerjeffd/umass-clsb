@@ -55,6 +55,12 @@ app.post('/network', (req, res, next) => {
     .catch(next);
 });
 
+app.post('/barriers/id', (req, res, next) => {
+  db.getBarriers(req.body.barrierIds)
+    .then(result => res.status(200).json({ status: 'ok', data: result }))
+    .catch(next);
+});
+
 app.post('/barriers/geojson', (req, res, next) => {
   db.getBarriersInGeoJSON(req.body.feature)
     .then(result => res.status(200).json({ status: 'ok', data: result }))
