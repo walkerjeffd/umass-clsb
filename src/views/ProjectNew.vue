@@ -22,6 +22,7 @@
       <button @click="prevStep">Prev</button>
       <button @click="nextStep">Next</button>
     </div>
+
     <div v-if="step === 2">
       <h3>Step 2: Select Geographic Region</h3>
       <p>Select geographic region by:</p>
@@ -31,28 +32,18 @@
         <option value="huc8">HUC8 Watershed</option>
         <option value="draw">Draw Polygon</option>
       </select>
-
       <region-map :type="region.type" :feature="region.feature" @loadRegion="loadRegion">
       </region-map>
       <button @click="prevStep">Prev</button>
       <button @click="nextStep">Next</button>
     </div>
+
     <div v-if="step === 3">
       <h3>Step 3: Submit Form</h3>
       <p>You have selected {{ barriers.length }} barriers.</p>
       <button @click="prevStep">Prev</button>
       <button @click="submit">Create Project</button>
     </div>
-    <hr>
-    <h3>Debug</h3>
-<pre>
-id: {{form.id}}
-name: {{form.name}}
-description: {{form.description}}
-author: {{form.author}}
-region.type: {{region.type}}
-region.feature: {{region.feature}}
-</pre>
   </div>
 </template>
 
@@ -84,25 +75,30 @@ export default {
     ...mapGetters(['barriers'])
   },
   methods: {
-    ...mapActions(['createProject', 'setBarriers']),
+    ...mapActions(['createProject', 'setRegion']),
     nextStep() {
-      if (this.step === 3) return;
-      if (this.step === 2) {
-        if (!this.region.feature) {
-          alert('No region selected');
-          return;
-        }
-
-        axios.post('/barriers/geojson', {
-          feature: this.region.feature
-        }).then((response) => {
-          const barriers = response.data.data;
-          this.setBarriers(barriers);
+      if (this.step === 1) {
+        return this.createProject({
+          id: this.form.id,
+          name: this.form.name,
+          description: this.form.description,
+          author: this.form.author
+        }).then(() => {
           this.step += 1;
         });
-      } else {
-        this.step += 1;
+      } else if (this.step === 2) {
+        if (!this.region.feature) {
+          alert('No region selected');
+          return null;
+        }
+
+        return this.setRegion(this.region)
+          .then(() => {
+            this.step += 1;
+          });
       }
+
+      return null;
     },
     prevStep() {
       if (this.step === 1) return;
@@ -112,18 +108,7 @@ export default {
       this.region.feature = feature;
     },
     submit() {
-      this.createProject({
-        id: this.form.id,
-        name: this.form.name,
-        description: this.form.description,
-        author: this.form.author,
-        region: this.region
-      }).then(() => {
-        this.$router.push('/builder');
-      }).catch((e) => {
-        console.log('ERROR');
-        console.log(e);
-      });
+      this.$router.push('/builder');
     }
   }
 };

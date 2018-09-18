@@ -23,7 +23,7 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(['barriers', 'project'])
+    ...mapGetters(['barriers', 'project', 'region'])
   },
   mounted() {
     this.map = L.map(this.$el.getElementsByClassName('barriers-map')[0], {
@@ -50,8 +50,8 @@ export default {
     this.layers.barriers.addTo(this.map);
     this.layers.selected.addTo(this.map);
 
-    if (this.project && this.project.region) {
-      const layer = L.geoJson(this.project.region.feature, {
+    if (this.region) {
+      const layer = L.geoJson(this.region.feature, {
         interactive: false,
         style: {
           color: 'red',

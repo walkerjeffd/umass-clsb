@@ -17,17 +17,15 @@ function cloneScenario(d) {
 export default new Vuex.Store({
   state: {
     project: null,
+    region: null,
     barriers: [],
-    scenario: {
-      id: null,
-      barriers: [],
-      status: 'new'
-    },
+    scenario: null,
     scenarios: [],
-    scenarioIdSeq: 1
+    scenarioIdSeq: 0
   },
   getters: {
     project: state => state.project,
+    region: state => state.region,
     scenario: state => state.scenario,
     scenarios: state => state.scenarios,
     barriers: state => state.barriers,
@@ -36,6 +34,9 @@ export default new Vuex.Store({
   mutations: {
     SET_PROJECT(state, project) {
       state.project = project;
+    },
+    SET_REGION(state, region) {
+      state.region = region;
     },
     SET_BARRIERS(state, barriers) {
       state.barriers = barriers;
@@ -65,6 +66,15 @@ export default new Vuex.Store({
     createProject({ commit }, project) {
       commit('SET_PROJECT', project);
     },
+    setRegion({ commit }, region) {
+      return axios.post('/barriers/geojson', {
+        feature: region.feature
+      }).then((response) => {
+        const barriers = response.data.data;
+        commit('SET_REGION', region);
+        commit('SET_BARRIERS', barriers);
+      });
+    },
     setBarriers({ commit }, barriers) {
       commit('SET_BARRIERS', barriers);
     },
@@ -73,7 +83,7 @@ export default new Vuex.Store({
     },
     newScenario({ commit, state }) {
       const scenario = {
-        id: state.scenarioIdSeq,
+        id: state.scenarioIdSeq++,
         barriers: [],
         status: 'new'
       };
@@ -88,19 +98,26 @@ export default new Vuex.Store({
 
       scenario.status = 'fetching';
       commit('SAVE_SCENARIO', scenario);
-      axios.post('/network', {
-        barrierIds
-      }).then(response => response.data.data)
+      return axios.post('/network', { barrierIds })
+        .then(response => response.data.data)
         .then((network) => {
           const { targets } = network;
-
           scenario.status = 'calculating';
           commit('SAVE_SCENARIO', scenario);
-          scenario.network = graph.trim(targets, network.nodes, network.edges);
-          const { nodes, edges } = scenario.network;
-          scenario.results = graph.linkages(targets, nodes, edges);
 
-          scenario.status = 'finished';
+          setTimeout(() => {
+            scenario.network = graph.trim(targets, network.nodes, network.edges);
+            const { nodes, edges } = scenario.network;
+            scenario.results = graph.linkages(targets, nodes, edges);
+
+            scenario.status = 'finished';
+            commit('SAVE_SCENARIO', scenario);
+          }, 2000);
+        })
+        .catch((err) => {
+          alert('Error: Unable to calculate effect for selected barrier ids');
+          console.error(err);
+          scenario.status = 'failed';
           commit('SAVE_SCENARIO', scenario);
         });
     }

@@ -244,18 +244,122 @@ edge = {
 }
 ```
 
-## Algorithm Translation
+## Vuex Store
 
-Translated original R code functions (`r/functions/`) to database queries and JavaScript module (`lib/graph`).
+```js
+{
+  // barriers in region
+  "barriers": [
+    {
+      "id": "c-328868",
+      "x_coord": 1991570,
+      "y_coord": 2441030,
+      "effect": 0,
+      "effect_ln": 0,
+      "delta": 0,
+      "type": "culvert",
+      "lat": 42.6242,
+      "lon": -71.2958,
+      "node_id": "10088000436"
+    },
+    ...
+  ],
 
-### `trim.along.graph()`
+  // project metadata
+  "project": {
+    "id": "<string>",
+    "name": "<string>",
+    "description": "<string>",
+    "author": "<string>"
+  },
 
-The `trim.along.graph()` was translated to `graph.trim()`.
+  // project region (HUC8 or Draw)
+  "region": {
+    "type": "huc8|draw",
+    "feature": {
+      "type": "Feature",
+      "properties": {...},
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [...]
+      }
+    }
+  },
 
-`graph.trim()` takes arguments:
+  // active scenario
+  "scenario": {
+    "id": 2,
+    "barriers": [],
+    "status": "new"
+  },
 
-- `nodes`: list of nodes
-- `edges`: list of edges
+  // sequential ID for scenarios
+  "scenarioSeqId": 2,
 
+  // list of saved scenarios
+  "scenarios": [
+    {
+      "id": 1,
+      "status": "finished",
 
+      // selected barriers
+      "barriers": [
+        {
+          "id": "c-488893",
+          "x_coord": 1991950,
+          "y_coord": 2408090,
+          "effect": 0,
+          "effect_ln": 0,
+          "delta": 0,
+          "type": "culvert",
+          "lat": 42.3385,
+          "lon": -71.3947,
+          "node_id": "10088004840"
+        }, ...
+      ],
 
+      // trimmed network
+      "network": {
+        "edges": [
+          {
+            "id": 1011036,
+            "start_id": "10088004360",
+            "end_id": "10088004361",
+            "length": 210,
+            "cost": 32.634,
+            "value": 1.72,
+            "index": 0
+          },
+          ...
+        ],
+        "nodes": [
+          {
+            "node_id": "10088004358",
+            "x": 1991470,
+            "y": 2410100,
+            "cost": 0
+          },
+          ...
+        ]
+      },
+
+      // aquatic connectivity scores
+      "results": {
+        "delta": {
+          "total": 2312.7088734182294,
+          "values": [8.261281495911987, ...]
+        },
+        "effect": {
+          "total": 450.47919337434206,
+          "values": [2.0299148818526596, ...]
+        },
+        "kernels": {
+          "base": [4.876707229460349, ...],
+          "alt": [4.884968510956261, ...]
+        }
+      }
+    },
+    ...
+  ]
+}
+```

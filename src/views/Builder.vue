@@ -89,8 +89,8 @@ export default {
       this.scenario.barriers.splice(index, 1);
     },
     saveScenario(scenario) {
-      this.$store.dispatch('saveScenario', scenario)
-        .then(this.newScenario);
+      this.newScenario()
+        .then(() => this.$store.dispatch('saveScenario', scenario));
     }
   }
 };
