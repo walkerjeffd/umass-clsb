@@ -2,7 +2,9 @@
   <div>
     <h2>Scenario Builder</h2>
     <div v-if="project">
-      Current Project: {{ project.name }}
+      <div>
+        Current Project: {{ project.name }} (<a href="#" @click.prevent="downloadJson()">export</a>)
+      </div>
       <div v-if="barriers">
         There are {{ barriers.length }} barriers in the project region.
       </div>
@@ -63,6 +65,10 @@
 <script>
 import { mapGetters, mapActions } from 'vuex';
 
+import download from 'downloadjs';
+import slugify from 'slugify';
+
+import { VERSION } from '@/constants';
 import { number } from '@/filters';
 import BarriersMap from '@/components/BarriersMap.vue';
 
@@ -71,12 +77,12 @@ export default {
     BarriersMap
   },
   computed: {
-    ...mapGetters(['project', 'barriers', 'scenario', 'scenarios', 'scenarioIdSeq'])
+    ...mapGetters(['project', 'barriers', 'scenario', 'scenarios'])
   },
   filters: {
     number
   },
-  mounted() {
+  created() {
     this.newScenario();
   },
   methods: {
@@ -89,8 +95,20 @@ export default {
       this.scenario.barriers.splice(index, 1);
     },
     saveScenario(scenario) {
-      this.newScenario()
+      this.newScenario(scenario.id)
         .then(() => this.$store.dispatch('saveScenario', scenario));
+    },
+    downloadJson() {
+      const data = {
+        version: VERSION,
+        project: this.project,
+        region: this.region,
+        barriers: this.barriers,
+        scenarios: this.scenarios
+      };
+      const filename = `${slugify(this.project.name, { lower: true })}.json`;
+
+      download(JSON.stringify(data, null, 2), filename, 'application/json');
     }
   }
 };

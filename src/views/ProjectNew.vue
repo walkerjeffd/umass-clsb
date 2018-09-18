@@ -8,9 +8,6 @@
     <div v-if="step === 1">
       <h3>Step 1: Project Information</h3>
       <div>
-        ID*: <input type="text" v-model="form.id">
-      </div>
-      <div>
         Name*: <input type="text" v-model="form.name">
       </div>
       <div>
@@ -49,7 +46,6 @@
 
 <script>
 import { mapGetters, mapActions } from 'vuex';
-import axios from 'axios';
 
 import RegionMap from '@/components/RegionMap.vue';
 
@@ -60,7 +56,6 @@ export default {
     return {
       step: 1,
       form: {
-        id: '',
         name: '',
         description: '',
         author: ''
@@ -75,14 +70,14 @@ export default {
     ...mapGetters(['barriers'])
   },
   methods: {
-    ...mapActions(['createProject', 'setRegion']),
+    ...mapActions(['setProject', 'setRegion']),
     nextStep() {
       if (this.step === 1) {
-        return this.createProject({
-          id: this.form.id,
+        return this.setProject({
           name: this.form.name,
           description: this.form.description,
-          author: this.form.author
+          author: this.form.author,
+          created: (new Date()).valueOf()
         }).then(() => {
           this.step += 1;
         });

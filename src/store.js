@@ -10,7 +10,7 @@ function cloneScenario(d) {
   return {
     id: d.id,
     barriers: d.barriers.map(b => b),
-    status: 'new'
+    status: d.status
   };
 }
 
@@ -20,16 +20,14 @@ export default new Vuex.Store({
     region: null,
     barriers: [],
     scenario: null,
-    scenarios: [],
-    scenarioIdSeq: 0
+    scenarios: []
   },
   getters: {
     project: state => state.project,
     region: state => state.region,
-    scenario: state => state.scenario,
-    scenarios: state => state.scenarios,
     barriers: state => state.barriers,
-    scenarioIdSeq: state => state.scenarioIdSeq
+    scenario: state => state.scenario,
+    scenarios: state => state.scenarios
   },
   mutations: {
     SET_PROJECT(state, project) {
@@ -50,7 +48,6 @@ export default new Vuex.Store({
         state.scenarios[index] = scenario;
       } else {
         state.scenarios.push(scenario);
-        state.scenarioIdSeq += 1;
       }
     },
     DELETE_SCENARIO(state, scenario) {
@@ -63,7 +60,7 @@ export default new Vuex.Store({
     }
   },
   actions: {
-    createProject({ commit }, project) {
+    setProject({ commit }, project) {
       commit('SET_PROJECT', project);
     },
     setRegion({ commit }, region) {
@@ -81,9 +78,12 @@ export default new Vuex.Store({
     deleteScenario({ commit }, scenario) {
       commit('DELETE_SCENARIO', scenario);
     },
-    newScenario({ commit, state }) {
+    newScenario({ commit, state }, lastId) {
+      lastId = lastId || 0;
+      const id = Math.max(...state.scenarios.map(d => d.id), lastId) + 1;
+
       const scenario = {
-        id: state.scenarioIdSeq++,
+        id,
         barriers: [],
         status: 'new'
       };
