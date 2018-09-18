@@ -3,7 +3,8 @@
     <h2>Scenario Builder</h2>
     <div v-if="project">
       <div>
-        Current Project: {{ project.name }} (<a href="#" @click.prevent="downloadJson()">export</a>)
+        Current Project: {{ project.name }}
+        (<a href="#" @click.prevent="downloadJson()">export project to file</a>)
       </div>
       <div v-if="barriers">
         There are {{ barriers.length }} barriers in the project region.
@@ -31,14 +32,17 @@
           </ul>
         </div>
         <div>
-          <button @click="saveScenario(scenario)">Save Scenario</button>
+          <button @click="createSingleScenario(scenario)">Save Single Scenario</button>
+          <button @click="createBatchScenarios(scenario)">Create Multiple Scenarios</button>
           <button @click="newScenario()">Cancel/Clear</button>
         </div>
       </div>
       <hr>
       <div>
         <h4>All Scenarios</h4>
-        <div>
+        <div v-if="scenarios.length === 0">No scenarios exist, create a new one.</div>
+        <div v-else>
+          <div>(<a href="#" @click.prevent="clearScenarios()">delete all</a>)</div>
           <ul>
             <li v-for="s in scenarios" :key="s.id">
               Scenario ID: {{ s.id }} <br/>
@@ -67,12 +71,21 @@ import { mapGetters, mapActions } from 'vuex';
 
 import download from 'downloadjs';
 import slugify from 'slugify';
+import generatorics from 'generatorics';
 
 import { VERSION } from '@/constants';
 import { number } from '@/filters';
 import BarriersMap from '@/components/BarriersMap.vue';
 
 export default {
+  data() {
+    return {
+      multi: {
+        max: 10,
+        choose: 2
+      }
+    };
+  },
   components: {
     BarriersMap
   },
@@ -86,7 +99,7 @@ export default {
     this.newScenario();
   },
   methods: {
-    ...mapActions(['deleteScenario', 'newScenario', 'loadScenario']),
+    ...mapActions(['deleteScenario', 'newScenario', 'loadScenario', 'clearScenarios']),
     addBarrierToScenario(barrier) {
       this.scenario.barriers.push(barrier);
     },
@@ -94,9 +107,39 @@ export default {
       const index = this.scenario.barriers.findIndex(d => d === barrier);
       this.scenario.barriers.splice(index, 1);
     },
-    saveScenario(scenario) {
-      this.newScenario(scenario.id)
+    createSingleScenario(scenario) {
+      if (!scenario || scenario.barriers.length === 0) {
+        alert('No barriers selected');
+        return null;
+      }
+
+      return this.newScenario(scenario.id)
         .then(() => this.$store.dispatch('saveScenario', scenario));
+    },
+    createBatchScenarios(scenario) {
+      if (!scenario || scenario.barriers.length === 0) {
+        alert('No barriers selected');
+        return null;
+      }
+
+      if (scenario.barriers.length <= this.multi.choose) {
+        alert(`Need at least ${this.multi.choose + 1} barriers selected for multi mode`);
+        return null;
+      }
+
+      const scenarios = [...generatorics.clone.combination(scenario.barriers, this.multi.choose)];
+      const { id } = scenario;
+      const promises = scenarios.map((s, i) => {
+        const newScenario = {
+          id: id + i,
+          barriers: s,
+          status: 'new'
+        };
+        return this.$store.dispatch('saveScenario', newScenario);
+      });
+
+      return this.newScenario(scenario.id + (promises.length - 1))
+        .then(() => Promise.all(promises));
     },
     downloadJson() {
       const data = {

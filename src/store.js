@@ -97,6 +97,9 @@ export default new Vuex.Store({
       commit('SET_SCENARIOS', json.scenarios);
       return dispatch('newScenario');
     },
+    clearScenarios({ commit }) {
+      commit('SET_SCENARIOS', []);
+    },
     setRegion({ commit }, region) {
       return axios.post('/barriers/geojson', {
         feature: region.feature
