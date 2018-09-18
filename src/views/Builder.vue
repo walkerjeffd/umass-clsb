@@ -77,7 +77,7 @@ export default {
     BarriersMap
   },
   computed: {
-    ...mapGetters(['project', 'barriers', 'scenario', 'scenarios'])
+    ...mapGetters(['project', 'barriers', 'scenario', 'scenarios', 'region'])
   },
   filters: {
     number

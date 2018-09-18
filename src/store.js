@@ -2,6 +2,8 @@ import Vue from 'vue';
 import Vuex from 'vuex';
 import axios from 'axios';
 
+import { VERSION } from '@/constants';
+
 const graph = require('../lib/graph/');
 
 Vue.use(Vuex);
@@ -26,8 +28,8 @@ export default new Vuex.Store({
     project: state => state.project,
     region: state => state.region,
     barriers: state => state.barriers,
-    scenario: state => state.scenario,
-    scenarios: state => state.scenarios
+    scenarios: state => state.scenarios,
+    scenario: state => state.scenario
   },
   mutations: {
     SET_PROJECT(state, project) {
@@ -41,6 +43,9 @@ export default new Vuex.Store({
     },
     SET_SCENARIO(state, scenario) {
       state.scenario = scenario;
+    },
+    SET_SCENARIOS(state, scenarios) {
+      state.scenarios = scenarios;
     },
     SAVE_SCENARIO(state, scenario) {
       const index = state.scenarios.findIndex(d => d.id === scenario.id);
@@ -62,6 +67,35 @@ export default new Vuex.Store({
   actions: {
     setProject({ commit }, project) {
       commit('SET_PROJECT', project);
+    },
+    loadProjectFile({ commit, dispatch }, json) {
+      if (!json) {
+        return Promise.reject(new Error('Unable to read file or it is empty'));
+      }
+      if (!json.project) {
+        return Promise.reject(new Error('Missing project'));
+      }
+      if (!json.barriers) {
+        return Promise.reject(new Error('Missing barriers'));
+      }
+      if (!json.region) {
+        return Promise.reject(new Error('Missing region'));
+      }
+      if (!json.scenarios) {
+        return Promise.reject(new Error('Missing scenarios'));
+      }
+      if (!json.version) {
+        return Promise.reject(new Error('Missing version'));
+      }
+      if (json.version !== VERSION) {
+        return Promise.reject(new Error('Incompatible file version'));
+      }
+
+      commit('SET_PROJECT', json.project);
+      commit('SET_BARRIERS', json.barriers);
+      commit('SET_REGION', json.region);
+      commit('SET_SCENARIOS', json.scenarios);
+      return dispatch('newScenario');
     },
     setRegion({ commit }, region) {
       return axios.post('/barriers/geojson', {
