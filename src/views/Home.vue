@@ -3,7 +3,6 @@
     <v-layout align-center justify-center>
       <v-flex xs12 lg8 xl6>
         <h1>Welcome to the Critical Linkages Scenario Builder!</h1>
-        <p class="pt-3">To get started:</p>
         <v-layout align-center justify-center>
           <v-container grid-list-xl>
             <v-layout column>

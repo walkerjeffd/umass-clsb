@@ -1,8 +1,8 @@
 <template>
-  <v-container>
+  <v-container fluid>
     <v-layout row wrap>
       <!-- Left Column -->
-      <v-flex xs12 xl3>
+      <v-flex xs12 lg4>
         <v-container fluid grid-list-lg>
           <v-layout column>
             <v-flex>
@@ -24,16 +24,17 @@
                     <v-flex xs9>{{barriers.length | number}}</v-flex>
                   </v-layout>
                 </v-card-text>
-                <v-card-actions class="pb-4 pr-4">
-                  <v-layout justify-end>
-                    <v-btn to="/project/new" small>
-                      <v-icon>control_point</v-icon> New
-                    </v-btn>
-                    <v-btn small>
+                <v-card-actions class="pb-4 px-4">
+                  <v-layout justify-space-between>
+                    <v-btn small disabled>
                       <v-icon>create</v-icon> Edit
                     </v-btn>
                     <v-btn @click="downloadJson()" small>
                       <v-icon>file_download</v-icon> Export
+                    </v-btn>
+                    <v-spacer></v-spacer>
+                    <v-btn to="/project/new" small>
+                      <v-icon>control_point</v-icon> New
                     </v-btn>
                   </v-layout>
                 </v-card-actions>
@@ -154,7 +155,7 @@
       </v-flex>
 
       <!-- Middle Column -->
-      <v-flex xs12 xl6>
+      <v-flex xs12 lg4>
         <v-container fluid grid-list-lg>
           <v-layout column>
             <v-flex>
@@ -176,7 +177,7 @@
       </v-flex>
 
       <!-- Right Column -->
-      <v-flex xs12 xl3>
+      <v-flex xs12 lg4>
         <v-container fluid grid-list-lg>
           <v-layout column>
             <v-flex>
