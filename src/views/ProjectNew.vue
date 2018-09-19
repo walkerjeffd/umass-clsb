@@ -40,11 +40,13 @@
                   </v-container>
                 </v-form>
               </div>
-              <v-btn
-                color="primary"
-                @click="nextStep">
+              <v-layout justify-end>
+                <v-btn
+                  color="primary"
+                  @click="nextStep">
                 Next <v-icon>chevron_right</v-icon>
-              </v-btn>
+                </v-btn>
+              </v-layout>
             </v-stepper-content>
 
             <v-stepper-content step="2">
@@ -60,14 +62,17 @@
                   </region-map>
                 </div>
               </div>
-              <v-btn flat @click="step = 1">
-                <v-icon>chevron_left</v-icon> Prev
-              </v-btn>
-              <v-btn
-                color="primary"
-                @click="nextStep">
-                Next <v-icon>chevron_right</v-icon>
-              </v-btn>
+              <v-layout justify-spacing-between>
+                <v-btn flat @click="step = 1">
+                  <v-icon>chevron_left</v-icon> Prev
+                </v-btn>
+                <v-spacer></v-spacer>
+                <v-btn
+                  color="primary"
+                  @click="nextStep">
+                  Next <v-icon>chevron_right</v-icon>
+                </v-btn>
+              </v-layout>
             </v-stepper-content>
 
             <v-stepper-content step="3">
@@ -80,13 +85,15 @@
                 <li>Region: {{ region.type }}</li>
               </ul>
 
-              <v-btn flat @click="step = 2">
-                <v-icon>chevron_left</v-icon> Prev
-              </v-btn>
-
-              <v-btn color="primary" @click="submit">
-                Finish
-              </v-btn>
+              <v-layout justify-spacing-between>
+                <v-btn flat @click="step = 2">
+                  <v-icon>chevron_left</v-icon> Prev
+                </v-btn>
+                <v-spacer></v-spacer>
+                <v-btn color="primary" @click="submit">
+                  Finish
+                </v-btn>
+              </v-layout>
             </v-stepper-content>
           </v-stepper-items>
         </v-stepper>
