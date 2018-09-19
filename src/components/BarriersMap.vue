@@ -33,7 +33,12 @@ export default {
       minZoom: 5,
     });
 
+    setTimeout(() => {
+      this.map.invalidateSize();
+    }, 400);
+
     L.control.scale({ position: 'bottomleft' }).addTo(this.map);
+
     const basemaps = {
       'Open Street Map': L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors',
@@ -60,6 +65,12 @@ export default {
       });
       this.layers.region.addLayer(layer);
       this.map.fitBounds(layer.getBounds());
+    }
+
+    const controlElements = this.$el.getElementsByClassName('leaflet-control-container')[0].children;
+
+    for (let i = 0; i < controlElements.length; i++) {
+      controlElements[i].style.zIndex = 1;
     }
 
     this.drawBarriers();
@@ -120,7 +131,7 @@ export default {
 
 <style scoped>
 .barriers-map {
-  width: 600px;
+  width: 100%;
   height: 600px;
 }
 </style>

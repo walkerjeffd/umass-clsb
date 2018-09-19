@@ -1,98 +1,96 @@
 <template>
   <v-container>
-    <v-layout column>
-      <h1 class="pb-4">New Project</h1>
-      <v-layout class="pb-5">
-        <v-flex xs12 md6>
-          <v-stepper v-model="step">
-            <v-stepper-header>
-              <v-stepper-step :complete="step > 1" step="1">Project Information</v-stepper-step>
-              <v-divider></v-divider>
-              <v-stepper-step :complete="step > 2" step="2">Define Region</v-stepper-step>
-              <v-divider></v-divider>
-              <v-stepper-step step="3">Review</v-stepper-step>
-            </v-stepper-header>
+    <v-layout align-center justify-center>
+      <v-flex xs12 lg8 xl6>
+        <h1 class="pb-4">New Project</h1>
+        <v-stepper v-model="step">
+          <v-stepper-header>
+            <v-stepper-step :complete="step > 1" step="1">Project Information</v-stepper-step>
+            <v-divider></v-divider>
+            <v-stepper-step :complete="step > 2" step="2">Define Region</v-stepper-step>
+            <v-divider></v-divider>
+            <v-stepper-step step="3">Review</v-stepper-step>
+          </v-stepper-header>
 
-            <v-stepper-items>
-              <v-stepper-content step="1">
-                <div class="mb-5">
-                  <v-form>
-                    <v-container>
-                      <v-layout row wrap>
-                        <v-flex xs12>
-                          <v-text-field
-                            label="Project Name*"
-                            v-model="form.name"
-                          ></v-text-field>
-                        </v-flex>
-                        <v-flex xs12>
-                          <v-text-field
-                            label="Description"
-                            v-model="form.description"
-                          ></v-text-field>
-                        </v-flex>
-                        <v-flex xs12>
-                          <v-text-field
-                            label="Author"
-                            v-model="form.author"
-                          ></v-text-field>
-                        </v-flex>
-                      </v-layout>
-                    </v-container>
-                  </v-form>
+          <v-stepper-items>
+            <v-stepper-content step="1">
+              <div class="mb-5">
+                <v-form>
+                  <v-container>
+                    <v-layout row wrap>
+                      <v-flex xs12>
+                        <v-text-field
+                          label="Project Name*"
+                          v-model="form.name"
+                        ></v-text-field>
+                      </v-flex>
+                      <v-flex xs12>
+                        <v-text-field
+                          label="Description"
+                          v-model="form.description"
+                        ></v-text-field>
+                      </v-flex>
+                      <v-flex xs12>
+                        <v-text-field
+                          label="Author"
+                          v-model="form.author"
+                        ></v-text-field>
+                      </v-flex>
+                    </v-layout>
+                  </v-container>
+                </v-form>
+              </div>
+              <v-btn
+                color="primary"
+                @click="nextStep">
+                Next <v-icon>chevron_right</v-icon>
+              </v-btn>
+            </v-stepper-content>
+
+            <v-stepper-content step="2">
+              <div class="mb-5">
+                <v-select
+                  :items="regionTypes"
+                  label="Select Region Type"
+                  v-model="region.type">
+                </v-select>
+                <div v-if="step === 2">
+                  <region-map
+                    :type="region.type" :feature="region.feature" @loadRegion="loadRegion">
+                  </region-map>
                 </div>
-                <v-btn
-                  color="primary"
-                  @click="nextStep">
-                  Next <v-icon>chevron_right</v-icon>
-                </v-btn>
-              </v-stepper-content>
+              </div>
+              <v-btn flat @click="step = 1">
+                <v-icon>chevron_left</v-icon> Prev
+              </v-btn>
+              <v-btn
+                color="primary"
+                @click="nextStep">
+                Next <v-icon>chevron_right</v-icon>
+              </v-btn>
+            </v-stepper-content>
 
-              <v-stepper-content step="2">
-                <div class="mb-5">
-                  <v-select
-                    :items="regionTypes"
-                    label="Select Region Type"
-                    v-model="region.type">
-                  </v-select>
-                  <div v-if="step === 2">
-                    <region-map
-                      :type="region.type" :feature="region.feature" @loadRegion="loadRegion">
-                    </region-map>
-                  </div>
-                </div>
-                <v-btn flat @click="step = 1">
-                  <v-icon>chevron_left</v-icon> Prev
-                </v-btn>
-                <v-btn
-                  color="primary"
-                  @click="nextStep">
-                  Next <v-icon>chevron_right</v-icon>
-                </v-btn>
-              </v-stepper-content>
+            <v-stepper-content step="3">
+              <p>You have selected {{ barriers.length }} barriers.</p>
 
-              <v-stepper-content step="3">
-                <p>You have selected {{ barriers.length }} barriers.</p>
+              <ul>
+                <li>Project Name: {{ form.name }}</li>
+                <li>Description: {{ form.description }}</li>
+                <li>Author: {{ form.author }}</li>
+                <li>Region: {{ region.type }}</li>
+              </ul>
 
-                <ul>
-                  <li>Project Name: {{ form.name }}</li>
-                  <li>Description: {{ form.description }}</li>
-                  <li>Author: {{ form.author }}</li>
-                  <li>Region: {{ region.type }}</li>
-                </ul>
+              <v-btn flat @click="step = 2">
+                <v-icon>chevron_left</v-icon> Prev
+              </v-btn>
 
-                <v-btn flat @click="step = 2">
-                  <v-icon>chevron_left</v-icon> Prev
-                </v-btn>
-
-                <v-btn color="primary" @click="submit">
-                  Finish
-                </v-btn>
-              </v-stepper-content>
-            </v-stepper-items>
-          </v-stepper>
-        </v-flex>
-      </v-layout>
+              <v-btn color="primary" @click="submit">
+                Finish
+              </v-btn>
+            </v-stepper-content>
+          </v-stepper-items>
+        </v-stepper>
+      </v-flex>
     </v-layout>
   </v-container>
 </template>
