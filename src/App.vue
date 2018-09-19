@@ -18,7 +18,7 @@
       <router-view/>
       <v-dialog
         v-model="dialog.about"
-        max-width="500"
+        max-width="960"
       >
         <v-card>
           <v-card-title
@@ -47,7 +47,7 @@
         </v-card>
       </v-dialog>
     </v-content>
-    <v-footer app>
+    <v-footer app class="justify-center">
       <span>&copy; 2018 SHEDS Development Team</span>
     </v-footer>
   </v-app>

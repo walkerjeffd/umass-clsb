@@ -67,6 +67,12 @@ export default {
       this.map.fitBounds(layer.getBounds());
     }
 
+    this.map.getPane('mapPane').style.zIndex = 0;
+    this.map.getPane('tilePane').style.zIndex = 0;
+    this.map.getPane('overlayPane').style.zIndex = 1;
+    this.map.getPane('popupPane').style.zIndex = 1;
+    this.map.getPane('tooltipPane').style.zIndex = 1;
+
     const controlElements = this.$el.getElementsByClassName('leaflet-control-container')[0].children;
 
     for (let i = 0; i < controlElements.length; i++) {
