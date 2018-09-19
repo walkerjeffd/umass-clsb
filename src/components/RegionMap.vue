@@ -1,8 +1,23 @@
 <template>
   <div>
-    <div v-if="type === 'huc8' && huc8.selected.feature">
-      Selected HUC8: {{ huc8.selected.feature.properties.name }}
-      ({{ huc8.selected.feature.properties.huc8 }})
+    <div class="body-2">
+      <div v-if="type === 'huc8'">
+        <p v-if="huc8.selected.feature">
+          Selected HUC8: {{ huc8.selected.feature.properties.name }}
+          ({{ huc8.selected.feature.properties.huc8 }})
+        </p>
+        <p v-else>
+          Click on a watershed (HUC8) to select it, then click Next.
+        </p>
+      </div>
+      <div v-else-if="type === 'draw'">
+        <p v-if="draw.selected.feature">
+          Polygon has been drawn. It has an area of {{ draw.selected.areaKm2 | number }} sq. km.
+        </p>
+        <p v-else>
+          Use the drawing tools in the upper right corner of the map to define your region of interest, then click Next.
+        </p>
+      </div>
     </div>
     <div class="region-map"></div>
   </div>
@@ -15,11 +30,15 @@ import 'leaflet-draw/dist/leaflet.draw.css';
 import axios from 'axios';
 import geoJsonArea from '@mapbox/geojson-area';
 
-// const geoJsonArea = require('@mapbox/geojson-area');
+import { number } from '@/filters';
+
 require('leaflet-bing-layer');
 
 export default {
   props: ['type', 'feature'],
+  filters: {
+    number
+  },
   data() {
     return {
       map: null,
@@ -57,12 +76,18 @@ export default {
     },
   },
   mounted() {
-    this.map = L.map(this.$el.getElementsByClassName('region-map')[0], {
+    const el = this.$el.getElementsByClassName('region-map')[0];
+
+    this.map = L.map(el, {
       center: [42, -72],
       zoom: 7,
       maxZoom: 18,
       minZoom: 5,
     });
+
+    setTimeout(() => {
+      this.map.invalidateSize();
+    }, 400);
 
     L.control.scale({ position: 'bottomleft' }).addTo(this.map);
     const basemaps = {
@@ -104,12 +129,17 @@ export default {
 
       const areaKm2 = geoJsonArea.geometry(feature) / 1e6;
       console.log('area (km2) = ', areaKm2);
+      this.draw.selected.areaKm2 = areaKm2;
 
       if (areaKm2 > 1000) {
         alert(`Polygon area (${areaKm2.toFixed(1)} km2) exceeds maximum (1000 km2)`);
       }
 
       this.loadRegion();
+    });
+    this.map.on(L.Draw.Event.DELETED, () => {
+      this.draw.selected.feature = null;
+      this.draw.selected.areaKm2 = null;
     });
 
     this.setType(this.type, true);
@@ -145,8 +175,10 @@ export default {
       if (initial && this.feature) {
         // load initial feature
         if (this.type === 'draw') {
-          this.draw.selected.feature = L.geoJson(this.feature).getLayers()[0];
+          const feature = L.geoJson(this.feature).getLayers()[0];
+          this.draw.selected.feature = feature;
           this.draw.selected.layer.addLayer(this.draw.selected.feature);
+          this.draw.selected.areaKm2 = geoJsonArea.geometry(this.feature.geometry) / 1e6;
         } else if (this.type === 'huc8') {
           this.selectHuc8(this.feature);
         }
@@ -186,7 +218,8 @@ export default {
 
 <style scoped>
 .region-map {
-  width: 600px;
-  height: 600px;
+  width: 100%;
+  height: 400px;
+  z-index: 0;
 }
 </style>
