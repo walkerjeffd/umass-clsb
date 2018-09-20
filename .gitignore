@@ -4,6 +4,7 @@
 .Ruserdata
 
 api/config.js
+src/config.js
 config.sh
 
 r/config.json

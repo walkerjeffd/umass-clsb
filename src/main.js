@@ -1,14 +1,15 @@
-import '@babel/polyfill'
+import '@babel/polyfill';
 import axios from 'axios';
 import Vue from 'vue';
-import './plugins/vuetify'
+import './plugins/vuetify';
 import App from './App.vue';
 import router from './router';
 import store from './store';
+import config from './config';
 
 Vue.config.productionTip = false;
 
-axios.defaults.baseURL = 'http://localhost:8090/';
+axios.defaults.baseURL = config[process.env.NODE_ENV].api.url;
 
 new Vue({
   router,

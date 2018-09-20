@@ -1,7 +1,9 @@
 const webpack = require('webpack');
 
 module.exports = {
-  baseUrl: '/clsb-dev/',
+  baseUrl: process.env.NODE_ENV === 'production'
+    ? '/clsb-dev/'
+    : '/',
   configureWebpack: {
     plugins: [
       new webpack.ProvidePlugin({
