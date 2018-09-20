@@ -3,26 +3,19 @@
 // const fs = require('fs');
 const express = require('express');
 const compression = require('compression');
-// const morgan = require('morgan');
+const morgan = require('morgan');
 const bodyParser = require('body-parser');
 
-// const config = require('../config');
 const db = require('./db');
-
-const config = {
-  api: {
-    port: 8090
-  }
-};
 
 const app = express();
 
 // access logging
-// morgan.token('real-ip', req => req.headers['x-real-ip'] || req.connection.remoteAddress);
-// const logFormat = ':date[iso] :real-ip :remote-user :method :url HTTP/:http-version :status :res[content-length] - :response-time ms';
+morgan.token('real-ip', req => req.headers['x-real-ip'] || req.connection.remoteAddress);
+const logFormat = ':date[iso] :real-ip :remote-user :method :url HTTP/:http-version :status :res[content-length] - :response-time ms';
 // const accessLogStream = fs.createWriteStream(config.api.logFile, { flags: 'a' });
 // app.use(morgan(logFormat, { stream: accessLogStream }));
-// app.use(morgan());
+app.use(morgan(logFormat));
 
 // body parser
 app.use(bodyParser.json());
@@ -81,6 +74,7 @@ function errorHandler(err, req, res, next) { // eslint-disable-line no-unused-va
 app.use(errorHandler);
 
 // start server
-app.listen(config.api.port, () => {
-  console.log('listening port=%d', config.api.port);
+const port = process.env.PORT || 8000;
+app.listen(port, () => {
+  console.log('listening port=%d', port);
 });
