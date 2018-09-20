@@ -3,6 +3,7 @@
 .RData
 .Ruserdata
 
+api/config.js
 config.sh
 
 r/config.json
