@@ -1,9 +1,9 @@
 module.exports = {
   db: {
-    host: 'localhost',
-    database: 'clsb',
-    user: 'jeff',
-    password: 'mochabeanhalocoffee',
+    host: '',
+    database: '',
+    user: '',
+    password: '',
     port: 5432
   }
 };
