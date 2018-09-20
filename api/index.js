@@ -7,6 +7,7 @@ const morgan = require('morgan');
 const bodyParser = require('body-parser');
 
 const db = require('./db');
+const config = require('./config');
 
 const app = express();
 
@@ -74,7 +75,7 @@ function errorHandler(err, req, res, next) { // eslint-disable-line no-unused-va
 app.use(errorHandler);
 
 // start server
-const port = process.env.PORT || 8000;
+const port = process.env.PORT || config.port || 8000;
 app.listen(port, () => {
   console.log('listening port=%d', port);
 });

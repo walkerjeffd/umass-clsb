@@ -1,4 +1,5 @@
 module.exports = {
+  port: 8000,
   db: {
     host: '',
     database: '',
