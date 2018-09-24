@@ -165,9 +165,12 @@
                 </v-toolbar>
                 <v-card-text>
                   <barriers-map
+                    :region="region"
+                    :barriers="barriers"
                     :selected="scenario.barriers"
-                    @add-barrier="addBarrierToScenario"
-                    @remove-barrier="removeBarrierFromScenario">
+                    :variable="{id: 'effect'}"
+                    @add-barrier="addBarrier"
+                    @remove-barrier="removeBarrier">
                   </barriers-map>
                 </v-card-text>
               </v-card>
@@ -192,7 +195,7 @@
                   <ul>
                     <li v-for="barrier in scenario.barriers" :key="barrier.id">
                       {{ barrier.id }}
-                      (<a href="#" @click.prevent="removeBarrierFromScenario(barrier)">remove</a>)
+                      (<a href="#" @click.prevent="removeBarrier(barrier)">remove</a>)
                     </li>
                   </ul>
                 </v-card-text>
@@ -329,10 +332,10 @@ export default {
   },
   methods: {
     ...mapActions(['deleteScenario', 'newScenario', 'loadScenario', 'clearScenarios']),
-    addBarrierToScenario(barrier) {
+    addBarrier(barrier) {
       this.scenario.barriers.push(barrier);
     },
-    removeBarrierFromScenario(barrier) {
+    removeBarrier(barrier) {
       const index = this.scenario.barriers.findIndex(d => d === barrier);
       this.scenario.barriers.splice(index, 1);
     },

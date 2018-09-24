@@ -31,6 +31,11 @@ export default new Router({
       path: '/builder',
       name: 'builder',
       component: () => import('./views/Builder.vue')
+    },
+    {
+      path: '/dev',
+      name: 'dev',
+      component: () => import('./dev/DevMap.vue')
     }
   ],
 });

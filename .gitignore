@@ -7,6 +7,8 @@ api/config.js
 src/config.js
 config.sh
 
+src/dev
+
 r/config.json
 r/rds/*.rds
 r/csv/*.csv
