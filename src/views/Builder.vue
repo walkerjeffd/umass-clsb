@@ -168,7 +168,7 @@
                     :region="region"
                     :barriers="barriers"
                     :selected="scenario.barriers"
-                    :variable="{id: 'effect'}"
+                    :variable="variable"
                     @add-barrier="addBarrier"
                     @remove-barrier="removeBarrier">
                   </barriers-map>
@@ -183,6 +183,31 @@
       <v-flex xs12 lg4>
         <v-container fluid grid-list-lg>
           <v-layout column>
+            <v-flex>
+              <v-card>
+                <v-toolbar dark color="blue" card dense>
+                  <v-toolbar-title>Variable</v-toolbar-title>
+                </v-toolbar>
+                <v-card-text>
+                  <v-select
+                    v-model="variable"
+                    :items="variables"
+                    item-text="label"
+                    item-value="id"
+                    label="Select Variable"
+                    return-object
+                    single-line>
+                  </v-select>
+                  <map-legend
+                    :id="'a'"
+                    :width="400"
+                    :height="30"
+                    :data="barriers"
+                    :variable="variable">
+                  </map-legend>
+                </v-card-text>
+              </v-card>
+            </v-flex>
             <v-flex>
               <v-card v-if="project">
                 <v-toolbar dark color="blue" card dense>
@@ -296,9 +321,10 @@ import download from 'downloadjs';
 import slugify from 'slugify';
 import generatorics from 'generatorics';
 
-import { VERSION } from '@/constants';
+import { VERSION, VARIABLES } from '@/constants';
 import { number } from '@/filters';
 import BarriersMap from '@/components/BarriersMap.vue';
+import MapLegend from '@/components/MapLegend.vue';
 
 export default {
   data() {
@@ -312,11 +338,14 @@ export default {
           show: false,
           text: null
         }
-      }
+      },
+      variable: null,
+      variables: VARIABLES
     };
   },
   components: {
-    BarriersMap
+    BarriersMap,
+    MapLegend
   },
   computed: {
     ...mapGetters(['project', 'barriers', 'scenario', 'scenarios', 'region'])
@@ -328,10 +357,15 @@ export default {
     if (!this.project) {
       this.$router.push('/');
     }
+    this.setVariableById('effect');
     this.newScenario();
   },
   methods: {
     ...mapActions(['deleteScenario', 'newScenario', 'loadScenario', 'clearScenarios']),
+    setVariableById(id) {
+      const index = this.variables.findIndex(d => d.id === id);
+      this.variable = this.variables[index];
+    },
     addBarrier(barrier) {
       this.scenario.barriers.push(barrier);
     },

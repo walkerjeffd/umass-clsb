@@ -9,12 +9,16 @@ import * as d3 from 'd3';
 import d3Tip from 'd3-tip';
 import 'leaflet/dist/leaflet.css';
 
+import colorMixin from '@/mixins/color';
+import variableMixin from '@/mixins/variable';
+
 d3.tip = d3Tip;
 
 require('leaflet-bing-layer');
 
 export default {
-  props: ['selected', 'barriers', 'region'],
+  props: ['selected', 'barriers', 'region', 'variable', 'colors'],
+  mixins: [variableMixin, colorMixin],
   data() {
     return {
       map: null,
@@ -37,8 +41,8 @@ export default {
         const point = vm.map.latLngToLayerPoint(new L.LatLng(y, x));
         this.stream.point(point.x, point.y);
       }
-      const transform = d3.geoTransform({ point: projectPoint });
-      const path = d3.geoPath().projection(transform);
+      const geoTransform = d3.geoTransform({ point: projectPoint });
+      const path = d3.geoPath().projection(geoTransform);
       return path;
     },
     pointRadius() {
@@ -118,6 +122,9 @@ export default {
   watch: {
     selected() {
       this.drawSelected();
+    },
+    variable() {
+      this.render();
     }
   },
   methods: {
@@ -177,7 +184,7 @@ export default {
           .attr('r', r)
           .attr('cx', d => this.map.latLngToLayerPoint(new L.LatLng(d.lat, d.lon)).x)
           .attr('cy', d => this.map.latLngToLayerPoint(new L.LatLng(d.lat, d.lon)).y)
-          .attr('fill', 'blue')
+          .attr('fill', d => this.colorScale(this.variableScale(d[this.variable.id])))
           .on('mouseenter', function (d) { // eslint-disable-line func-names
             d3.select(this).attr('r', r * 2);
             tip.show(d, this);
@@ -193,7 +200,7 @@ export default {
     },
     drawSelected() {
       const r = this.pointRadius;
-      // this.layers.selected.selectAll('circle').remove();
+      const tip = this.tip;
 
       if (this.selected) {
         const circles = this.layers.selected
@@ -209,13 +216,13 @@ export default {
           .attr('r', r + 2)
           .attr('cx', d => this.map.latLngToLayerPoint(new L.LatLng(d.lat, d.lon)).x)
           .attr('cy', d => this.map.latLngToLayerPoint(new L.LatLng(d.lat, d.lon)).y)
-          .on('mouseenter', function () { // eslint-disable-line func-names
-            d3.select(this)
-              .attr('r', r * 2);
+          .on('mouseenter', function (d) { // eslint-disable-line func-names
+            d3.select(this).attr('r', r * 2);
+            tip.show(d, this);
           })
-          .on('mouseout', function () { // eslint-disable-line func-names
-            d3.select(this)
-              .attr('r', r * 1.3);
+          .on('mouseout', function (d) { // eslint-disable-line func-names
+            d3.select(this).attr('r', r * 1.3);
+            tip.hide(d, this);
           })
           .on('click', (d) => {
             this.$emit('remove-barrier', d);
