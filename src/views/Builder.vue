@@ -2,7 +2,7 @@
   <v-container fluid>
     <v-layout row wrap>
       <!-- Left Column -->
-      <v-flex xs12 lg4>
+      <v-flex xs12 lg6>
         <v-container fluid grid-list-lg>
           <v-layout column>
             <v-flex>
@@ -38,6 +38,105 @@
                     </v-btn>
                   </v-layout>
                 </v-card-actions>
+              </v-card>
+            </v-flex>
+            <v-flex>
+              <v-card v-if="project">
+                <v-toolbar dark color="blue" card dense>
+                  <v-toolbar-title>Current Scenario</v-toolbar-title>
+                </v-toolbar>
+                <v-card-text>
+                  id: {{ scenario.id }}<br>
+                  status: {{ scenario.status }}<br>
+                  # barriers selected: {{ scenario.barriers.length }}
+                  <ul>
+                    <li v-for="barrier in scenario.barriers" :key="barrier.id">
+                      {{ barrier.id }}
+                      (<a href="#" @click.prevent="removeBarrier(barrier)">remove</a>)
+                    </li>
+                  </ul>
+                </v-card-text>
+                <v-card-actions class="px-4 pb-4">
+                  <v-layout>
+                    <v-btn
+                      @click="createSingleScenario(scenario)"
+                      small
+                      :disabled="scenario.barriers.length === 0">
+                      <v-icon>check</v-icon> Done
+                    </v-btn>
+                    <v-btn
+                      @click="batch.show = true"
+                      small
+                      :disabled="scenario.barriers.length === 0">
+                      <v-icon>scatter_plot</v-icon> Batch
+                    </v-btn>
+                    <v-spacer></v-spacer>
+                    <v-btn
+                      @click="newScenario()"
+                      small
+                      :disabled="scenario.barriers.length === 0">
+                      <v-icon>cancel</v-icon> Clear
+                    </v-btn>
+                  </v-layout>
+                </v-card-actions>
+                <v-card-text v-if="batch.show">
+                  <h2>Batch Scenario Tool</h2>
+                  <p class="caption lighten-1">
+                    Automatically generate multiple scenarios containing unique combinations of
+                    barriers that are currently selected. First, choose the number of barriers to
+                    be included in each scenario (must be less than the total number of selected
+                    barriers) and then click Done.
+                  </p>
+                  <v-alert
+                    :value="scenario.barriers.length >= batch.max"
+                    type="error"
+                    outline>
+                    Too many barriers selected, cannot be more than {{ batch.max }}.
+                  </v-alert>
+                  <v-alert
+                    :value="scenario.barriers.length < batch.min"
+                    type="error"
+                    outline>
+                    Too few barriers selected, must be at least {{ batch.min }}.
+                  </v-alert>
+                  <div
+                    v-if="(scenario.barriers.length <= batch.max) &&
+                          (scenario.barriers.length >= batch.min)">
+                    <p class="subheading">Number of Barriers in Each Scenario:</p>
+                    <v-radio-group v-model="batch.choose" row justify-right class="text-xs-center">
+                      <v-radio
+                        v-for="i in 4"
+                        :key="i"
+                        :label="i.toString()"
+                        :value="i"
+                        :disabled="i >= scenario.barriers.length">
+                      </v-radio>
+                    </v-radio-group>
+                  </div>
+                  <v-layout justify-left>
+                    <v-btn
+                      @click="createBatchScenarios(scenario)"
+                      small
+                      :disabled="!batch.choose"
+                      v-show="(scenario.barriers.length <= batch.max) &&
+                              (scenario.barriers.length >= batch.min)">
+                      <v-icon>check</v-icon> Done
+                    </v-btn>
+                    <v-spacer></v-spacer>
+                    <v-btn @click="batch.show = false" small>
+                      <v-icon>cancel</v-icon> Cancel
+                    </v-btn>
+                  </v-layout>
+                </v-card-text>
+                <v-snackbar v-model="batch.snackbar.show" top :timeout="4000">
+                  {{ batch.snackbar.text }}
+                  <v-btn
+                    color="blue"
+                    flat
+                    @click="batch.snackbar.show = false">
+                    Close
+                  </v-btn>
+                </v-snackbar>
               </v-card>
             </v-flex>
             <v-flex>
@@ -155,38 +254,13 @@
       </v-flex>
 
       <!-- Middle Column -->
-      <v-flex xs12 lg4>
+      <v-flex xs12 lg6>
         <v-container fluid grid-list-lg>
           <v-layout column>
             <v-flex>
               <v-card>
                 <v-toolbar dark color="blue" card dense>
                   <v-toolbar-title>Map</v-toolbar-title>
-                </v-toolbar>
-                <v-card-text>
-                  <barriers-map
-                    :region="region"
-                    :barriers="barriers"
-                    :selected="scenario.barriers"
-                    :variable="variable"
-                    @add-barrier="addBarrier"
-                    @remove-barrier="removeBarrier">
-                  </barriers-map>
-                </v-card-text>
-              </v-card>
-            </v-flex>
-          </v-layout>
-        </v-container>
-      </v-flex>
-
-      <!-- Right Column -->
-      <v-flex xs12 lg4>
-        <v-container fluid grid-list-lg>
-          <v-layout column>
-            <v-flex>
-              <v-card>
-                <v-toolbar dark color="blue" card dense>
-                  <v-toolbar-title>Variable</v-toolbar-title>
                 </v-toolbar>
                 <v-card-text>
                   <v-select
@@ -200,111 +274,19 @@
                   </v-select>
                   <map-legend
                     :id="'a'"
-                    :width="400"
-                    :height="30"
+                    :height="20"
                     :data="barriers"
                     :variable="variable">
                   </map-legend>
+                  <barriers-map
+                    :region="region"
+                    :barriers="barriers"
+                    :selected="scenario.barriers"
+                    :variable="variable"
+                    @add-barrier="addBarrier"
+                    @remove-barrier="removeBarrier">
+                  </barriers-map>
                 </v-card-text>
-              </v-card>
-            </v-flex>
-            <v-flex>
-              <v-card v-if="project">
-                <v-toolbar dark color="blue" card dense>
-                  <v-toolbar-title>Current Scenario</v-toolbar-title>
-                </v-toolbar>
-                <v-card-text>
-                  id: {{ scenario.id }}<br>
-                  status: {{ scenario.status }}<br>
-                  # barriers selected: {{ scenario.barriers.length }}
-                  <ul>
-                    <li v-for="barrier in scenario.barriers" :key="barrier.id">
-                      {{ barrier.id }}
-                      (<a href="#" @click.prevent="removeBarrier(barrier)">remove</a>)
-                    </li>
-                  </ul>
-                </v-card-text>
-                <v-card-actions class="px-4 pb-4">
-                  <v-layout>
-                    <v-btn
-                      @click="createSingleScenario(scenario)"
-                      small
-                      :disabled="scenario.barriers.length === 0">
-                      <v-icon>check</v-icon> Done
-                    </v-btn>
-                    <v-btn
-                      @click="batch.show = true"
-                      small
-                      :disabled="scenario.barriers.length === 0">
-                      <v-icon>scatter_plot</v-icon> Batch
-                    </v-btn>
-                    <v-spacer></v-spacer>
-                    <v-btn
-                      @click="newScenario()"
-                      small
-                      :disabled="scenario.barriers.length === 0">
-                      <v-icon>cancel</v-icon> Clear
-                    </v-btn>
-                  </v-layout>
-                </v-card-actions>
-                <v-card-text v-if="batch.show">
-                  <h2>Batch Scenario Tool</h2>
-                  <p class="caption lighten-1">
-                    Automatically generate multiple scenarios containing unique combinations of
-                    barriers that are currently selected. First, choose the number of barriers to
-                    be included in each scenario (must be less than the total number of selected
-                    barriers) and then click Done.
-                  </p>
-                  <v-alert
-                    :value="scenario.barriers.length >= batch.max"
-                    type="error"
-                    outline>
-                    Too many barriers selected, cannot be more than {{ batch.max }}.
-                  </v-alert>
-                  <v-alert
-                    :value="scenario.barriers.length < batch.min"
-                    type="error"
-                    outline>
-                    Too few barriers selected, must be at least {{ batch.min }}.
-                  </v-alert>
-                  <div
-                    v-if="(scenario.barriers.length <= batch.max) &&
-                          (scenario.barriers.length >= batch.min)">
-                    <p class="subheading">Number of Barriers in Each Scenario:</p>
-                    <v-radio-group v-model="batch.choose" row justify-right class="text-xs-center">
-                      <v-radio
-                        v-for="i in 4"
-                        :key="i"
-                        :label="i.toString()"
-                        :value="i"
-                        :disabled="i >= scenario.barriers.length">
-                      </v-radio>
-                    </v-radio-group>
-                  </div>
-                  <v-layout justify-left>
-                    <v-btn
-                      @click="createBatchScenarios(scenario)"
-                      small
-                      :disabled="!batch.choose"
-                      v-show="(scenario.barriers.length <= batch.max) &&
-                              (scenario.barriers.length >= batch.min)">
-                      <v-icon>check</v-icon> Done
-                    </v-btn>
-                    <v-spacer></v-spacer>
-                    <v-btn @click="batch.show = false" small>
-                      <v-icon>cancel</v-icon> Cancel
-                    </v-btn>
-                  </v-layout>
-                </v-card-text>
-                <v-snackbar v-model="batch.snackbar.show" top :timeout="4000">
-                  {{ batch.snackbar.text }}
-                  <v-btn
-                    color="blue"
-                    flat
-                    @click="batch.snackbar.show = false">
-                    Close
-                  </v-btn>
-                </v-snackbar>
               </v-card>
             </v-flex>
           </v-layout>

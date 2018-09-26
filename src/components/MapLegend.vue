@@ -7,18 +7,13 @@
 import * as d3 from 'd3';
 
 import colorMixin from '@/mixins/color';
-// import variableMixin from '@/mixins/variable';
+import variableMixin from '@/mixins/variable';
 
 export default {
-  mixins: [colorMixin],
+  mixins: [colorMixin, variableMixin],
   props: {
     id: {
       type: String,
-      required: true,
-    },
-    width: {
-      type: Number,
-      default: 400,
       required: true,
     },
     height: {
@@ -26,12 +21,16 @@ export default {
       default: 20,
       required: false,
     },
+    maxWidth: {
+      type: Number,
+      required: false
+    },
     margins: {
       type: Object,
       default() {
         return {
-          left: 20,
-          right: 20,
+          left: 0,
+          right: 0,
         };
       },
       required: false,
@@ -48,77 +47,73 @@ export default {
   data() {
     return {
       svg: null,
-      axisHeight: 30
+      axisHeight: 30,
+      width: 300
     };
   },
   computed: {
-    variableDomain() {
-      // compute value domain from dataset
-      if (!this.variable || !this.data) return [0, 1];
-
-      return d3.extent(this.data, d => d[this.variable.id]);
-    },
     variableScale() {
-      // transform value -> [0, 1]
-      if (!this.variable) return d3.scaleIdentity();
-
-      const transform = this.variable.transform;
-
-      let scale;
-      switch (transform.type) {
-        case 'log':
-          scale = d3.scaleLog();
-          break;
-        case 'pow':
-          scale = d3.scalePow()
-            .exponent(transform.exponent);
-          break;
-        default:
-          scale = d3.scaleLinear();
-          break;
-      }
-      return scale
-        .domain(this.variableDomain)
-        .range([0, 1]);
+      return this.getVariableScale(this.variable, this.data);
     },
-    axisScale() {
-      const scale = this.variableScale.copy();
-      return scale
-        .domain(this.variableDomain)
-        .rangeRound([0, +this.width]);
-    },
-    axisFormatter() {
-      return d3.format(this.variable ? this.variable.formats.axis : ',.1f');
-    },
-    axis() {
-      return d3.axisBottom(this.axisScale);
+    colorScale() {
+      return this.getColorScale(this.variable);
     }
   },
   mounted() {
-    this.svg = d3.select(this.$el).append('svg')
-      .attr('width', this.width + this.margins.left + this.margins.right)
-      .attr('height', this.height + this.axisHeight);
+    this.svg = d3.select(this.$el).append('svg');
 
     this.render();
+
+    window.addEventListener('resize', this.render);
+  },
+  beforeDestroy() {
+    window.removeEventListener('resize', this.render);
   },
   watch: {
     variable() {
+      this.render();
+    },
+    data() {
       this.render();
     }
   },
   methods: {
     render() {
+      this.resize();
       this.clear();
-      this.renderGradient();
+
+      switch (this.variable.scale.type) {
+        case 'continuous':
+          this.renderContinuous();
+          break;
+        case 'quantile':
+          this.renderQuantile();
+          break;
+        default:
+          console.log('ERROR: invalid variable scale type');
+      }
+    },
+    resize() {
+      let width = this.$el.offsetWidth - this.margins.left - this.margins.right;
+
+      if (this.maxWidth && width > this.maxWidth) {
+        width = this.maxWidth;
+      }
+
+      this.width = width;
+
+      const fullWidth = this.width + this.margins.left + this.margins.right;
+      const fullHeight = this.height + this.axisHeight;
+
+      this.svg.attr('width', fullWidth)
+        .attr('height', fullHeight);
     },
     clear() {
       this.svg.select('g.legend-axis').remove();
-
       this.svg.select('defs').remove();
-
       this.svg.selectAll('rect').remove();
     },
-    renderGradient() {
+    renderContinuous() {
       const defs = this.svg.append('defs');
 
       const linearGradient = defs.append('linearGradient')
@@ -151,17 +146,94 @@ export default {
         .attr('class', 'legend-axis')
         .attr('transform', `translate(${this.margins.left}, ${this.height})`);
 
-      this.renderAxisTicks();
+      this.renderAxisContinuous();
     },
-    renderAxisTicks() {
-      this.axis
-        .ticks(8, this.axisFormatter);
+    renderAxisContinuous() {
+      const axisScale = this.variableScale
+        .copy()
+        .rangeRound([0, +this.width]);
+      const axisFormatter = d3.format(this.variable ? this.variable.formats.axis : ',.1f');
+      const axis = d3.axisBottom(axisScale);
+
+      axis.ticks(8, axisFormatter);
       this.svg.select('g.legend-axis')
-        .call(this.axis);
+        .call(axis);
+
+      if (this.variableScale.clamp() && this.variable.transform) {
+        if (this.variable.transform.min) {
+          const tick = this.svg.select('g.tick text');
+          if (tick.datum() === this.variable.transform.min) {
+            tick.text(`< ${tick.text()}`);
+          }
+        }
+        if (this.variable.transform.max) {
+          const ticks = this.svg.selectAll('g.tick text')
+            .filter(function () { // eslint-disable-line func-names
+              return d3.select(this).text() !== '';
+            });
+          const tick = d3.select(ticks.nodes()[ticks.size() - 1]);
+          if (tick.datum() === this.variable.transform.max) {
+            tick.text(`> ${tick.text()}`);
+          }
+        }
+      }
     },
+    renderQuantile() {
+      const quantileDomain = this.variableScale.range();
+
+      const nColors = quantileDomain.length;
+
+      const rectWidth = this.width / nColors;
+      const rect = this.svg.selectAll('rect')
+        .data(quantileDomain);
+
+      rect.enter()
+        .append('rect')
+        .attr('width', rectWidth + 1)
+        .attr('height', this.height)
+        .attr('x', d => this.margins.left + (d * this.width))
+        .style('fill', this.colorScale);
+
+      this.svg.append('g')
+        .attr('class', 'legend-axis quantile')
+        .attr('transform', `translate(${this.margins.left}, ${this.height})`);
+
+      this.renderAxisQuantile();
+    },
+    renderAxisQuantile() {
+      const axisFormatter = d3.format(this.variable ? this.variable.formats.text : ',.1f');
+
+      const extent = d3.extent(this.data, d => d[this.variable.id]);
+
+      const quantiles = this.variableScale.quantiles();
+
+      quantiles.unshift(extent[0]);
+      quantiles.push(extent[1]);
+
+      const quantilesFormatted = quantiles.map(axisFormatter);
+
+      const tickLabels = [];
+      for (let i = 0; i < quantilesFormatted.length - 1; i++) {
+        tickLabels.push(`${quantilesFormatted[i]} - ${quantilesFormatted[i + 1]}`);
+      }
+
+      const labelWidth = this.width / tickLabels.length;
+
+      const axisScale = d3.scalePoint()
+        .domain(tickLabels)
+        .range([labelWidth / 2, +this.width - (labelWidth / 2)]);
+
+      const axis = d3.axisBottom(axisScale);
+
+      this.svg.select('g.legend-axis')
+        .call(axis);
+    }
   },
 };
 </script>
 
 <style>
+g.legend-axis.quantile path {
+  display: none;
+}
 </style>

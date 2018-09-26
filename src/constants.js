@@ -5,12 +5,12 @@ module.exports = {
       id: 'effect',
       label: 'Connectivity Effect',
       formats: {
-        text: ',.1f',
+        text: ',.0f',
         axis: ',.1s'
       },
-      transform: {
-        type: 'pow',
-        exponent: 0.1
+      scale: {
+        type: 'quantile',
+        nQuantile: 4
       }
     },
     {
@@ -20,9 +20,12 @@ module.exports = {
         text: ',.1f',
         axis: ',.1s'
       },
-      transform: {
-        type: 'pow',
-        exponent: 0.1
+      scale: {
+        type: 'continuous',
+        transform: {
+          type: 'log',
+          min: 1
+        }
       }
     },
     {
@@ -32,9 +35,12 @@ module.exports = {
         text: null,
         axis: null
       },
-      transform: {
-        type: null
+      scale: {
+        type: 'categorical',
+        transform: {
+          type: null
+        }
       }
-    },
+    }
   ]
 };

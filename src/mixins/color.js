@@ -1,14 +1,20 @@
 import * as d3 from 'd3';
 
 const mixin = {
-  computed: {
-    colorScale() {
+  methods: {
+    getColorScale(variable) {
       // translates value from [0, 1] -> color
 
-      return d3.scaleSequential(d3.interpolateViridis);
-      // return d3.scaleSequential(d3.interpolateInferno);
-      // return d3.scaleSequential(d3.interpolateWarm);
-      // return d3.scaleSequential(d3.interpolateCool);
+      // const scale = d3.scaleSequential(d3.interpolateInferno);
+      // const scale = d3.scaleSequential(d3.interpolateWarm);
+      // const scale = d3.scaleSequential(d3.interpolateCool);
+      const scale = d3.scaleSequential(d3.interpolateViridis);
+      if (variable.scale.type === 'quantile') {
+        const nQuantile = variable.scale.nQuantile;
+        scale.domain([0, 1 - (1 / nQuantile)]);
+      }
+
+      return scale;
     }
   }
 };

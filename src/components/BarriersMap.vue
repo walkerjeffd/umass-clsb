@@ -35,6 +35,12 @@ export default {
     };
   },
   computed: {
+    variableScale() {
+      return this.getVariableScale(this.variable, this.barriers);
+    },
+    colorScale() {
+      return this.getColorScale(this.variable);
+    },
     path() {
       const vm = this;
       function projectPoint(x, y) {
@@ -184,7 +190,13 @@ export default {
           .attr('r', r)
           .attr('cx', d => this.map.latLngToLayerPoint(new L.LatLng(d.lat, d.lon)).x)
           .attr('cy', d => this.map.latLngToLayerPoint(new L.LatLng(d.lat, d.lon)).y)
-          .attr('fill', d => this.colorScale(this.variableScale(d[this.variable.id])))
+          .attr('fill', (d) => {
+            const value = d[this.variable.id];
+            const colorValue = this.variableScale(value);
+            const color = this.colorScale(colorValue);
+
+            return color;
+          })
           .on('mouseenter', function (d) { // eslint-disable-line func-names
             d3.select(this).attr('r', r * 2);
             tip.show(d, this);
