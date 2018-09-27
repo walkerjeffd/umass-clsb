@@ -42,20 +42,20 @@ module.exports = {
           min: 1
         }
       }
-    },
-    {
-      id: 'type',
-      label: 'Barrier Type',
-      formats: {
-        text: null,
-        axis: null
-      },
-      scale: {
-        type: 'categorical',
-        transform: {
-          type: null
-        }
-      }
     }
+    // {
+    //   id: 'type',
+    //   label: 'Barrier Type',
+    //   formats: {
+    //     text: null,
+    //     axis: null
+    //   },
+    //   scale: {
+    //     type: 'categorical',
+    //     transform: {
+    //       type: null
+    //     }
+    //   }
+    // }
   ]
 };
