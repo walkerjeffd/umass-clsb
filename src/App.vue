@@ -47,7 +47,7 @@
         </v-card>
       </v-dialog>
     </v-content>
-    <v-footer app class="justify-center">
+    <v-footer app class="justify-center" fixed style="min-height:28px">
       <span>&copy; 2018 SHEDS Development Team</span>
     </v-footer>
   </v-app>

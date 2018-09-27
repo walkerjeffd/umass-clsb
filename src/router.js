@@ -33,9 +33,29 @@ export default new Router({
       component: () => import('./views/Builder.vue')
     },
     {
-      path: '/dev',
-      name: 'dev',
-      component: () => import('./dev/DevMap.vue')
+      path: '/dev/map',
+      name: 'dev-map',
+      component: () => import('./dev/Map.vue')
+    },
+    {
+      path: '/dev/crossfilter-map',
+      name: 'dev-crossfilter-map',
+      component: () => import('./dev/CrossfilterMap.vue')
+    },
+    {
+      path: '/dev/crossfilter-dc',
+      name: 'dev-crossfilter-dc',
+      component: () => import('./dev/CrossfilterDc.vue')
+    },
+    {
+      path: '/dev/map-full',
+      name: 'dev-map-full',
+      component: () => import('./dev/MapFull.vue')
+    },
+    {
+      path: '/dev/map-full-tabs',
+      name: 'dev-map-full-tabs',
+      component: () => import('./dev/MapFullTabs.vue')
     }
   ],
 });

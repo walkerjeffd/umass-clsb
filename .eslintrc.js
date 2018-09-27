@@ -18,7 +18,8 @@ module.exports = {
     'no-alert': 'off',
     'no-plusplus': 'off',
     'consistent-return': 'off',
-    'prefer-destructuring': 'off'
+    'prefer-destructuring': 'off',
+    'object-shorthand': 'off'
   },
   parserOptions: {
     parser: 'babel-eslint'

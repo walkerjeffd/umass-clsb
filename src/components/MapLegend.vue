@@ -10,6 +10,7 @@ import colorMixin from '@/mixins/color';
 import variableMixin from '@/mixins/variable';
 
 export default {
+  name: 'map-legend',
   mixins: [colorMixin, variableMixin],
   props: {
     id: {
@@ -41,6 +42,10 @@ export default {
     },
     data: {
       type: Array,
+      required: true
+    },
+    show: {
+      type: Boolean,
       required: true
     }
   },
@@ -75,6 +80,9 @@ export default {
     },
     data() {
       this.render();
+    },
+    show() {
+      this.render();
     }
   },
   methods: {
@@ -95,6 +103,10 @@ export default {
     },
     resize() {
       let width = this.$el.offsetWidth - this.margins.left - this.margins.right;
+
+      if (this.$el.offsetWidth === 0) {
+        width = 400;
+      }
 
       if (this.maxWidth && width > this.maxWidth) {
         width = this.maxWidth;
@@ -159,20 +171,20 @@ export default {
       this.svg.select('g.legend-axis')
         .call(axis);
 
-      if (this.variableScale.clamp() && this.variable.transform) {
-        if (this.variable.transform.min) {
+      if (this.variableScale.clamp() && this.variable.scale.transform) {
+        if (this.variable.scale.transform.min) {
           const tick = this.svg.select('g.tick text');
-          if (tick.datum() === this.variable.transform.min) {
+          if (tick.datum() === this.variable.scale.transform.min) {
             tick.text(`< ${tick.text()}`);
           }
         }
-        if (this.variable.transform.max) {
+        if (this.variable.scale.transform.max) {
           const ticks = this.svg.selectAll('g.tick text')
             .filter(function () { // eslint-disable-line func-names
               return d3.select(this).text() !== '';
             });
           const tick = d3.select(ticks.nodes()[ticks.size() - 1]);
-          if (tick.datum() === this.variable.transform.max) {
+          if (tick.datum() === this.variable.scale.transform.max) {
             tick.text(`> ${tick.text()}`);
           }
         }

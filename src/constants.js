@@ -2,6 +2,18 @@ module.exports = {
   VERSION: 1,
   VARIABLES: [
     {
+      id: 'effect_ln',
+      label: 'Connectivity ln(Effect)',
+      formats: {
+        text: ',.0f',
+        axis: ',.1s'
+      },
+      scale: {
+        type: 'continuous',
+        transform: {}
+      }
+    },
+    {
       id: 'effect',
       label: 'Connectivity Effect',
       formats: {
@@ -9,8 +21,11 @@ module.exports = {
         axis: ',.1s'
       },
       scale: {
-        type: 'quantile',
-        nQuantile: 4
+        type: 'continuous',
+        transform: {
+          type: 'log',
+          min: 1
+        }
       }
     },
     {
