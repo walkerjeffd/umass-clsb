@@ -22,20 +22,20 @@
           @click="createSingleScenario(scenario)"
           small
           :disabled="scenario.barriers.length === 0">
-          <v-icon>save_alt</v-icon> Save
+          <v-icon>save_alt</v-icon> Save Scenario
         </v-btn>
         <v-btn
           @click="batch.show = true"
           small
           :disabled="scenario.barriers.length === 0">
-          <v-icon>scatter_plot</v-icon> Batch
+          <v-icon>scatter_plot</v-icon> Create Batch
         </v-btn>
         <v-spacer></v-spacer>
         <v-btn
           @click="newScenario()"
           small
           :disabled="scenario.barriers.length === 0">
-          <v-icon>sync</v-icon> Restart
+          <v-icon>clear</v-icon> Clear
         </v-btn>
       </v-layout>
     </v-card-actions>
@@ -181,6 +181,12 @@
           </td>
         </template>
       </v-data-table>
+      <v-layout justify-right>
+        <v-spacer></v-spacer>
+        <v-btn @click="clearScenarios" small>
+          <v-icon>delete</v-icon> Delete All
+        </v-btn>
+      </v-layout>
     </v-card-text>
   </v-card>
 </template>
