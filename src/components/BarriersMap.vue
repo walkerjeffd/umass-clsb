@@ -9,6 +9,57 @@ import 'leaflet/dist/leaflet.css';
 
 require('leaflet-bing-layer');
 
+L.Control.Legend = L.Control.extend({
+  onAdd: () => {
+    const div = L.DomUtil.create('div', 'legend');
+
+    const types = [
+      {
+        type: 'dam',
+        label: 'Dam',
+        symbol: d3.symbol().type(d3.symbolSquare).size(100)
+      },
+      {
+        type: 'culvert',
+        label: 'Culvert',
+        symbol: d3.symbol().type(d3.symbolCircle).size(100)
+      }
+    ];
+
+    const size = 16;
+
+    d3.select(div)
+      .selectAll('svg')
+      .data(types)
+      .enter()
+      .append('div')
+      .style('height', `${size}px`)
+      .style('margin', '2px')
+      .each(function appendSvg(d) {
+        const svg = d3.select(this)
+          .append('svg')
+          .attr('width', size)
+          .attr('height', size);
+
+        svg.append('path')
+          .attr('d', p => p.symbol())
+          .attr('fill', '#666666')
+          .attr('transform', `translate(${size / 2},${size / 2})`);
+
+        d3.select(this)
+          .append('span')
+          .text(d.label)
+          .style('vertical-align', 'top')
+          .style('padding-left', '5px')
+          .style('color', 'rgba(0,0,0,0.87)');
+      });
+
+    return div;
+  },
+  onRemove: () => null
+});
+L.control.legend = opts => new L.Control.Legend(opts);
+
 export default {
   props: ['selected', 'barriers', 'region', 'variable', 'colorScale', 'variableScale'],
   data() {
@@ -104,6 +155,8 @@ export default {
       position: 'topright',
       collapsed: true,
     }).addTo(this.map);
+
+    L.control.legend({ position: 'topright' }).addTo(this.map);
 
     this.map.getPane('mapPane').style.zIndex = 0;
     this.map.getPane('tilePane').style.zIndex = 0;
@@ -311,6 +364,14 @@ path.barrier {
 path.selected {
   cursor: pointer;
   pointer-events: none;
+}
+
+.legend {
+  color: #555;
+  background: white;
+  padding: 5px;
+  border-radius: 5px;
+  border: 2px solid rgb(0,0,0,0.2);
 }
 
 /*
