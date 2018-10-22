@@ -7,8 +7,6 @@ import * as d3 from 'd3';
 import d3Tip from 'd3-tip';
 import 'leaflet/dist/leaflet.css';
 
-d3.tip = d3Tip;
-
 require('leaflet-bing-layer');
 
 export default {
@@ -19,7 +17,7 @@ export default {
       svg: null,
       disableClick: false,
       zoomLevel: 0,
-      tip: d3.tip()
+      tip: d3Tip()
         .attr('class', 'd3-tip'),
       layers: {
         barriers: null,
@@ -175,21 +173,33 @@ export default {
     drawBarriers() {
       const r = this.pointRadius;
       const tip = this.tip;
-      this.layers.barriers.selectAll('circle').remove();
+
+      this.layers.barriers.selectAll('path.barrier').remove();
 
       if (!this.barriers || !this.variableScale || !this.colorScale) return;
 
-      const circles = this.layers.barriers
-        .selectAll('circle')
+      const typePaths = {
+        dam: d3.symbol().type(d3.symbolSquare).size(r * 10),
+        culvert: d3.symbol().type(d3.symbolCircle).size(r * 10),
+      };
+      const highlightTypePaths = {
+        dam: d3.symbol().type(d3.symbolSquare).size(r * 10 * 3),
+        culvert: d3.symbol().type(d3.symbolCircle).size(r * 10 * 3),
+      };
+
+      const barriers = this.layers.barriers
+        .selectAll('path.barrier')
         .data(this.barriers, d => d.id);
 
-      circles.enter()
-        .append('circle')
+      barriers.enter()
+        .append('path')
         .attr('class', 'barrier')
-        .merge(circles)
-        .attr('r', r)
-        .attr('cx', d => this.map.latLngToLayerPoint(new L.LatLng(d.lat, d.lon)).x)
-        .attr('cy', d => this.map.latLngToLayerPoint(new L.LatLng(d.lat, d.lon)).y)
+        .merge(barriers)
+        .attr('transform', (d) => {
+          const point = this.map.latLngToLayerPoint(new L.LatLng(d.lat, d.lon));
+          return `translate(${point.x},${point.y})`;
+        })
+        .attr('d', d => typePaths[d.type](d))
         .attr('fill', (d) => {
           const value = d[this.variable.id];
           const colorValue = this.variableScale(value);
@@ -198,50 +208,51 @@ export default {
           return color;
         })
         .on('mouseenter', function (d) { // eslint-disable-line func-names
-          d3.select(this).attr('r', r * 2);
+          d3.select(this).attr('d', b => highlightTypePaths[b.type](b));
           tip.show(d, this);
         })
         .on('mouseout', function (d) { // eslint-disable-line func-names
-          d3.select(this).attr('r', r);
+          d3.select(this).attr('d', b => typePaths[b.type](b));
           tip.hide(d, this);
         })
         .on('click', (d) => {
-          this.$emit('add-barrier', d);
+          if (this.selected.map(b => b.id).includes(d.id)) {
+            this.$emit('remove-barrier', d);
+          } else {
+            this.$emit('add-barrier', d);
+          }
         });
 
-      circles.exit().remove();
+      barriers.exit().remove();
     },
     drawSelected() {
       const r = this.pointRadius;
-      const tip = this.tip;
+
+      const typePaths = {
+        dam: d3.symbol().type(d3.symbolSquare).size(r * 10 * 3),
+        culvert: d3.symbol().type(d3.symbolCircle).size(r * 10 * 3),
+      };
+
 
       if (this.selected) {
-        const circles = this.layers.selected
-          .selectAll('circle')
+        const selected = this.layers.selected
+          .selectAll('path.selected')
           .data(this.selected, d => d.id);
 
-        circles.enter()
-          .append('circle')
+        selected.enter()
+          .append('path')
           .attr('class', 'selected')
           .attr('fill', 'none')
           .attr('stroke', 'red')
-          .merge(circles)
-          .attr('r', r + 2)
-          .attr('cx', d => this.map.latLngToLayerPoint(new L.LatLng(d.lat, d.lon)).x)
-          .attr('cy', d => this.map.latLngToLayerPoint(new L.LatLng(d.lat, d.lon)).y)
-          .on('mouseenter', function (d) { // eslint-disable-line func-names
-            d3.select(this).attr('r', r * 2);
-            tip.show(d, this);
+          .attr('stroke-width', '2px')
+          .merge(selected)
+          .attr('transform', (d) => {
+            const point = this.map.latLngToLayerPoint(new L.LatLng(d.lat, d.lon));
+            return `translate(${point.x},${point.y})`;
           })
-          .on('mouseout', function (d) { // eslint-disable-line func-names
-            d3.select(this).attr('r', r * 1.3);
-            tip.hide(d, this);
-          })
-          .on('click', (d) => {
-            this.$emit('remove-barrier', d);
-          });
+          .attr('d', d => typePaths[d.type](d));
 
-        circles.exit().remove();
+        selected.exit().remove();
       }
     }
   }
@@ -260,15 +271,14 @@ path.region {
   stroke-width: 2px;
 }
 
-circle.barrier {
+path.barrier {
   cursor: pointer;
-  pointer-events: visible;
+  pointer-events: visible !important;
 }
 
-circle.selected {
+path.selected {
   cursor: pointer;
-  pointer-events: visible;
-  stroke-width: 2px;
+  pointer-events: none;
 }
 
 /*
