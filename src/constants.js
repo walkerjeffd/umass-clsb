@@ -3,7 +3,7 @@ module.exports = {
   VARIABLES: [
     {
       id: 'effect_ln',
-      label: 'Connectivity ln(Effect)',
+      label: 'ln(Restoration Potential)',
       formats: {
         text: ',.0f',
         axis: ',.1s'
@@ -15,7 +15,7 @@ module.exports = {
     },
     {
       id: 'effect',
-      label: 'Connectivity Effect',
+      label: 'Restoration Potential',
       formats: {
         text: ',.0f',
         axis: ',.1s'
@@ -30,7 +30,7 @@ module.exports = {
     },
     {
       id: 'delta',
-      label: 'Connectivity Delta',
+      label: 'Connectivity Gain',
       formats: {
         text: ',.1f',
         axis: ',.1s'

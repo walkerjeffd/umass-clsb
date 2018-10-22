@@ -11,7 +11,7 @@ require('leaflet-bing-layer');
 
 L.Control.Legend = L.Control.extend({
   onAdd: () => {
-    const div = L.DomUtil.create('div', 'legend');
+    const div = L.DomUtil.create('div', 'legend-control');
 
     const types = [
       {
@@ -180,9 +180,9 @@ export default {
     this.svg.call(this.tip.html(d => `
       <strong>Barrier ID:</strong> ${d.id}<br>
       <strong>Type:</strong> ${d.type}<br>
-      <strong>ln(Effect):</strong> ${d.effect_ln.toFixed(1)}<br>
-      <strong>Effect:</strong> ${d.effect.toFixed(1)}<br>
-      <strong>Delta:</strong> ${d.delta.toFixed(1)}
+      <strong>ln(Restoration Potential):</strong> ${d.effect_ln.toFixed(1)}<br>
+      <strong>Restoration Potential:</strong> ${d.effect.toFixed(1)}<br>
+      <strong>Connectivity Gain:</strong> ${d.delta.toFixed(1)}
     `));
 
     let moveTimeout;
@@ -366,7 +366,7 @@ path.selected {
   pointer-events: none;
 }
 
-.legend {
+.legend-control {
   color: #555;
   background: white;
   padding: 5px;

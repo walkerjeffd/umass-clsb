@@ -118,7 +118,7 @@
             align: 'right'
           },
           {
-            text: 'Effect',
+            text: 'Restoration Potential',
             value: 'results.effect.total',
             align: 'right'
           },
@@ -167,9 +167,9 @@
             <v-layout row justify-end>
               <v-tooltip bottom>
                 <v-icon
-                  slot="activator" @click="loadScenario(props.item)">edit
+                  slot="activator" @click="loadScenario(props.item)">visibility
                 </v-icon>
-                <span>Edit Scenario</span>
+                <span>View/Edit Scenario</span>
               </v-tooltip>
               <v-tooltip bottom>
                 <v-icon
