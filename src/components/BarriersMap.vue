@@ -12,6 +12,10 @@ import * as turf from '@turf/turf';
 
 require('leaflet-bing-layer');
 
+// customize draw toolbar buttons
+L.drawLocal.draw.toolbar.buttons.polygon = 'Draw polygon to select multiple barriers';
+L.drawLocal.draw.toolbar.buttons.rectangle = 'Draw rectangle to select multiple barriers';
+
 L.Control.Legend = L.Control.extend({
   onAdd: () => {
     const div = L.DomUtil.create('div', 'legend-control');
@@ -178,6 +182,8 @@ export default {
     this.draw.control = new L.Control.Draw({
       position: 'topright',
       draw: {
+        rectangle: {
+        },
         circle: false,
         circlemarker: false,
         polygon: {
@@ -187,7 +193,9 @@ export default {
         marker: false
       },
       edit: {
-        featureGroup: this.draw.selected.layer
+        featureGroup: this.draw.selected.layer,
+        edit: false,
+        remove: false
       }
     }).addTo(this.map);
     // this.map.addLayer(this.draw.selected.layer);

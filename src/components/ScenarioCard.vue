@@ -2,8 +2,14 @@
   <v-card>
     <v-card-text>
       <h3>New Scenario</h3>
-      <span>ID: {{ scenario.id }}</span>
       <div>
+        ID: {{ scenario.id }}
+      </div>
+      <div>
+        # Barriers: {{ scenario.barriers.length }}
+      </div>
+
+      <div style="max-height:125px;overflow-y:scroll;">
         Selected Barriers:
         <v-chip
           v-for="barrier in scenario.barriers"
@@ -62,13 +68,16 @@
         <p class="subheading">Number of Barriers in Each Scenario:</p>
         <v-radio-group v-model="batch.choose" row justify-right class="text-xs-center">
           <v-radio
-            v-for="i in 4"
+            v-for="i in 5"
             :key="i"
             :label="i.toString()"
             :value="i"
             :disabled="i >= scenario.barriers.length">
           </v-radio>
         </v-radio-group>
+        <div>
+          # Scenarios: {{ this.nBatchScenarios }}
+        </div>
       </div>
       <v-layout justify-left>
         <v-btn
@@ -204,17 +213,17 @@
       <div>
         <strong>Status</strong>:
         <span v-if="nScenariosTotal === 0">No scenarios have been created</span>
-        <span v-else-if="nScenariosRemaining > 0">Running scenarios ({{ nScenariosRemaining }} remaining)</span>
+        <span v-else-if="nScenariosRemaining > 0">Running scenarios ({{ percentScenariosComplete.toFixed(1)}}% complete, {{ nScenariosRemaining }} remaining)</span>
         <span v-else>All scenarios have finished running</span>
       </div>
     </v-card-text>
     <v-card-actions class="pa-3">
       <v-layout>
-        <v-btn @click="downloadScenariosCsv" small>
+        <v-btn @click="downloadScenariosCsv" small :disabled="scenarios.length === 0">
           <v-icon>save_alt</v-icon> Download Scenarios
         </v-btn>
         <v-spacer></v-spacer>
-        <v-btn @click="clearScenarios" small>
+        <v-btn @click="clearScenarios" small :disabled="scenarios.length === 0">
           <v-icon>delete</v-icon> Delete All
         </v-btn>
       </v-layout>
@@ -243,7 +252,7 @@ export default {
     return {
       batch: {
         choose: null,
-        max: 20,
+        max: 50,
         min: 2,
         show: false,
         snackbar: {
@@ -268,6 +277,14 @@ export default {
     },
     percentScenariosComplete() {
       return this.nScenariosTotal > 0 ? (this.nScenariosComplete / this.nScenariosTotal) * 100 : 100;
+    },
+    nBatchScenarios() {
+      if (!this.batch.choose) {
+        return 0;
+      }
+      const n = this.scenario.barriers.length;
+      const k = this.batch.choose;
+      return Math.round(generatorics.C(n, k));
     }
   },
   methods: {
@@ -306,24 +323,27 @@ export default {
         return null;
       }
 
-      const scenarios = [...generatorics.clone.combination(scenario.barriers, this.batch.choose)];
+      const scenariosBarriers = [...generatorics.clone.combination(scenario.barriers, this.batch.choose)];
       const { id } = scenario;
-      const promises = scenarios.map((s, i) => {
+      const scenarios = scenariosBarriers.map((s, i) => {
         const newScenario = {
           id: id + i,
           barriers: s,
           status: 'new'
         };
-        return this.$store.dispatch('saveScenario', newScenario);
+        return newScenario;
       });
 
       this.batch.snackbar.show = true;
-      this.batch.snackbar.text = `Created ${promises.length} new scenarios, each with ${this.batch.choose} barrier(s)`;
+      this.batch.snackbar.text = `Created ${scenarios.length} new scenarios, each with ${this.batch.choose} barrier(s)`;
       this.batch.choose = null;
       this.batch.show = false;
 
-      return this.newScenario(scenario.id + (promises.length - 1))
-        .then(() => Promise.all(promises));
+      return this.newScenario(scenario.id + (scenarios.length - 1))
+        .then(() => {
+          const promises = scenarios.map(s => this.$store.dispatch('saveScenario', s));
+          return Promise.all(promises);
+        });
     },
     downloadScenariosCsv() {
       if (this.scenarios.length > 0) {
