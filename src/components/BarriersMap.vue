@@ -6,6 +6,9 @@
 import * as d3 from 'd3';
 import d3Tip from 'd3-tip';
 import 'leaflet/dist/leaflet.css';
+import 'leaflet-draw';
+import 'leaflet-draw/dist/leaflet.draw.css';
+import * as turf from '@turf/turf';
 
 require('leaflet-bing-layer');
 
@@ -61,7 +64,7 @@ L.Control.Legend = L.Control.extend({
 L.control.legend = opts => new L.Control.Legend(opts);
 
 export default {
-  props: ['selected', 'barriers', 'region', 'variable', 'colorScale', 'variableScale'],
+  props: ['selected', 'barriers', 'region', 'variable', 'colorScale', 'variableScale', 'showSurveyed'],
   data() {
     return {
       map: null,
@@ -73,8 +76,16 @@ export default {
       layers: {
         barriers: null,
         selected: null,
+        surveyed: null,
         region: null
-      }
+      },
+      draw: {
+        selected: {
+          layer: new L.FeatureGroup(),
+          feature: null
+        },
+        control: null
+      },
     };
   },
   computed: {
@@ -115,9 +126,9 @@ export default {
     const basemaps = {
       'Open Street Map': L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors',
-      }).addTo(this.map),
+      }),
       'Bing Satellite': L.tileLayer.bing('AvSDmEuhbTKvL0ui4AlHwQNBVuDI2QBBoeODy1vwOz5sW_kDnBx3UMtUxbjsZ3bN'),
-      'No Basemap': L.tileLayer('')
+      'No Basemap': L.tileLayer('').addTo(this.map)
     };
 
     const overlays = [
@@ -130,6 +141,12 @@ export default {
       {
         layer: 'sheds:waterbodies',
         label: 'Waterbodies',
+        opacity: 0.5,
+        visible: true,
+      },
+      {
+        layer: 'sheds:wbdhu12',
+        label: 'HUC12 Basins',
         opacity: 0.5,
         visible: true,
       }
@@ -158,6 +175,23 @@ export default {
 
     L.control.legend({ position: 'topright' }).addTo(this.map);
 
+    this.draw.control = new L.Control.Draw({
+      position: 'topright',
+      draw: {
+        circle: false,
+        circlemarker: false,
+        polygon: {
+          allowIntersection: false, // Restricts shapes to simple polygons
+        },
+        polyline: false,
+        marker: false
+      },
+      edit: {
+        featureGroup: this.draw.selected.layer
+      }
+    }).addTo(this.map);
+    // this.map.addLayer(this.draw.selected.layer);
+
     this.map.getPane('mapPane').style.zIndex = 0;
     this.map.getPane('tilePane').style.zIndex = 0;
     this.map.getPane('overlayPane').style.zIndex = 1;
@@ -175,14 +209,16 @@ export default {
     const g = this.svg.append('g').attr('class', 'leaflet-zoom-hide');
     this.layers.region = g.append('g').attr('class', 'region');
     this.layers.barriers = g.append('g').attr('class', 'barriers');
+    this.layers.surveyed = g.append('g').attr('class', 'surveyed');
     this.layers.selected = g.append('g').attr('class', 'selected');
 
     this.svg.call(this.tip.html(d => `
       <strong>Barrier ID:</strong> ${d.id}<br>
       <strong>Type:</strong> ${d.type}<br>
-      <strong>ln(Restoration Potential):</strong> ${d.effect_ln.toFixed(1)}<br>
+      <strong>Surveyed:</strong> ${d.surveyed}<br>
       <strong>Restoration Potential:</strong> ${d.effect.toFixed(1)}<br>
-      <strong>Connectivity Gain:</strong> ${d.delta.toFixed(1)}
+      <strong>Connectivity Gain:</strong> ${d.delta.toFixed(1)}<br>
+      <strong>Aquatic Score:</strong> ${d.aquatic.toFixed(2)}<br>
     `));
 
     let moveTimeout;
@@ -199,6 +235,38 @@ export default {
       this.zoomLevel = this.map.getZoom();
       this.render();
     });
+    // this.map.on('draw:drawstart', (ev) => {
+    //   console.log('map:drawstart', ev);
+    // });
+    // this.map.on('draw:drawstop', (ev) => {
+    //   console.log('map:drawstop', ev);
+    //   console.log('layer', this.draw.selected.layer);
+    // });
+    this.map.on('draw:created', ({ layer }) => {
+      const points = {
+        type: 'FeatureCollection',
+        features: this.barriers.map(b => ({
+          type: 'Feature',
+          properties: {
+            id: b.id
+          },
+          geometry: {
+            type: 'Point',
+            coordinates: [b.lon, b.lat]
+          }
+        }))
+      };
+      const polygon = layer.toGeoJSON();
+
+      const selected = turf.pointsWithinPolygon(points, polygon);
+      const selectedIds = selected.features.map(d => d.properties.id);
+
+      selectedIds.forEach((id) => {
+        const barrier = this.barriers.find(d => d.id === id);
+        this.$emit('add-barrier', barrier);
+      });
+    });
+
 
     this.fitToRegion();
     this.render();
@@ -212,6 +280,9 @@ export default {
     },
     barriers() {
       this.render();
+    },
+    showSurveyed() {
+      this.drawSurveyed();
     }
   },
   methods: {
@@ -219,6 +290,7 @@ export default {
       this.resizeSvg();
       this.drawRegion();
       this.drawBarriers();
+      this.drawSurveyed();
       this.drawSelected();
     },
     drawRegion() {
@@ -264,11 +336,11 @@ export default {
       if (!this.barriers || !this.variableScale || !this.colorScale) return;
 
       const typePaths = {
-        dam: d3.symbol().type(d3.symbolSquare).size(r * 10),
+        dam: d3.symbol().type(d3.symbolSquare).size(r * 20),
         culvert: d3.symbol().type(d3.symbolCircle).size(r * 10),
       };
       const highlightTypePaths = {
-        dam: d3.symbol().type(d3.symbolSquare).size(r * 10 * 3),
+        dam: d3.symbol().type(d3.symbolSquare).size(r * 20 * 3),
         culvert: d3.symbol().type(d3.symbolCircle).size(r * 10 * 3),
       };
 
@@ -310,11 +382,43 @@ export default {
 
       barriers.exit().remove();
     },
+    drawSurveyed() {
+      const r = this.pointRadius;
+
+      const typePaths = {
+        dam: d3.symbol().type(d3.symbolSquare).size(r * 20 * 3),
+        culvert: d3.symbol().type(d3.symbolCircle).size(r * 10 * 3),
+      };
+
+      let surveyedBarriers = [];
+      if (this.showSurveyed) {
+        surveyedBarriers = this.barriers.filter(d => d.surveyed);
+      }
+
+      const surveyed = this.layers.surveyed
+        .selectAll('path.surveyed')
+        .data(surveyedBarriers, d => d.id);
+
+      surveyed.enter()
+        .append('path')
+        .attr('class', 'surveyed')
+        .attr('fill', 'none')
+        .attr('stroke', '#FF8F00')
+        .attr('stroke-width', '1.5px')
+        .merge(surveyed)
+        .attr('transform', (d) => {
+          const point = this.map.latLngToLayerPoint(new L.LatLng(d.lat, d.lon));
+          return `translate(${point.x},${point.y})`;
+        })
+        .attr('d', d => typePaths[d.type](d));
+
+      surveyed.exit().remove();
+    },
     drawSelected() {
       const r = this.pointRadius;
 
       const typePaths = {
-        dam: d3.symbol().type(d3.symbolSquare).size(r * 10 * 3),
+        dam: d3.symbol().type(d3.symbolSquare).size(r * 20 * 3),
         culvert: d3.symbol().type(d3.symbolCircle).size(r * 10 * 3),
       };
 
