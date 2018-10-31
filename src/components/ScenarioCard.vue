@@ -1,7 +1,7 @@
 <template>
   <v-card>
     <v-card-text>
-      <h4>New Scenario</h4>
+      <h3>New Scenario</h3>
       <span>ID: {{ scenario.id }}</span>
       <div>
         Selected Barriers:
@@ -22,13 +22,13 @@
           @click="createSingleScenario(scenario)"
           small
           :disabled="scenario.barriers.length === 0">
-          <v-icon>save_alt</v-icon> Save Scenario
+          <v-icon>play_arrow</v-icon> Run Scenario
         </v-btn>
         <v-btn
           @click="batch.show = true"
           small
           :disabled="scenario.barriers.length === 0">
-          <v-icon>scatter_plot</v-icon> Create Batch
+          <v-icon>scatter_plot</v-icon> Create Subsets
         </v-btn>
         <v-spacer></v-spacer>
         <v-btn
@@ -40,12 +40,9 @@
       </v-layout>
     </v-card-actions>
     <v-card-text v-if="batch.show">
-      <h4>Batch Scenario Tool</h4>
+      <h3>Create Subset Scenarios</h3>
       <p class="caption lighten-1">
-        Automatically generate multiple scenarios containing unique combinations of
-        barriers that are currently selected. First, choose the number of barriers to
-        be included in each scenario (must be less than the total number of selected
-        barriers) and then click Done.
+        To automatically generate multiple scenarios containing subsets for all combinations of barriers that are currently selected, choose the number of barriers to be included in each subset scenario and then click Run.
       </p>
       <v-alert
         :value="scenario.barriers.length >= batch.max"
@@ -80,7 +77,7 @@
           :disabled="!batch.choose"
           v-show="(scenario.barriers.length <= batch.max) &&
                   (scenario.barriers.length >= batch.min)">
-          <v-icon>check</v-icon> Done
+          <v-icon>play_arrow</v-icon> Run Subset Scenarios
         </v-btn>
         <v-spacer></v-spacer>
         <v-btn @click="batch.show = false" small>
@@ -99,103 +96,140 @@
     </v-snackbar>
     <v-divider></v-divider>
     <v-card-text>
-      <h4>Scenarios List</h4>
+      <h3>Scenarios List</h3>
       <v-data-table
         :headers="[
           {
             text: 'Status',
             value: 'status',
             sortable: false,
-            align: 'center'
+            align: 'center',
+            width: '1%'
           },
           {
             text: 'ID',
-            value: 'id'
+            value: 'id',
+            width: '1%'
           },
           {
             text: '# Barriers',
             value: 'barriers.length',
-            align: 'right'
+            align: 'right',
+            width: '1%'
+          },
+          {
+            text: 'Connectivity Gain',
+            value: 'results.delta.total',
+            align: 'right',
+            width: '1%'
           },
           {
             text: 'Restoration Potential',
             value: 'results.effect.total',
-            align: 'right'
+            align: 'right',
+            width: '1%'
           },
           {
             text: '',
-            align: 'center'
+            align: 'center',
+            width: '1%'
           }
         ]"
         :items="scenarios"
+        :loading="nScenariosTotal > 0"
         no-data-text="No scenarios have been created yet.">
+        <v-progress-linear slot="progress" color="blue" v-model="percentScenariosComplete"></v-progress-linear>
         <template slot="items" slot-scope="props">
-          <td class="text-xs-center">
-            <span v-if="props.item.status === 'finished'">
-              <v-tooltip bottom>
-                <v-icon slot="activator" color="green">check_circle_outline</v-icon>
-                <span>Complete</span>
-              </v-tooltip>
-            </span>
-            <span v-else-if="props.item.status === 'failed'">
-              <v-tooltip bottom>
-                <v-icon slot="activator" color="red">highlight_off</v-icon>
-                <span>Failed</span>
-              </v-tooltip>
-            </span>
-            <span v-else>
-              <v-tooltip bottom>
-                <v-progress-circular
-                  slot="activator"
-                  indeterminate
-                  color="primary">
-                </v-progress-circular>
-                <span>Calculating...</span>
-              </v-tooltip>
-            </span>
-          </td>
-          <td class="text-xs-center">{{ props.item.id }}</td>
-          <td class="text-xs-right">
-            {{ props.item.barriers.length }}
-          </td>
-          <td class="text-xs-right">
-            <span v-if="props.item.results">
-              {{ props.item.results.effect.total | number }}
-            </span>
-          </td>
-          <td class="text-xs-right">
-            <v-layout row justify-end>
-              <v-tooltip bottom>
-                <v-icon
-                  slot="activator" @click="loadScenario(props.item)">visibility
-                </v-icon>
-                <span>View/Edit Scenario</span>
-              </v-tooltip>
-              <v-tooltip bottom>
-                <v-icon
-                  slot="activator" @click="deleteScenario(props.item)">delete
-                </v-icon>
-                <span>Delete Scenario</span>
-              </v-tooltip>
-            </v-layout>
-          </td>
+          <tr
+            @click="selectRow(props.item)"
+            style="cursor:pointer"
+            :class="{ selected: (props.item.id === scenario.id) }">
+            <td class="text-xs-center">
+              <span v-if="props.item.status === 'finished'">
+                <v-tooltip bottom>
+                  <v-icon slot="activator" color="green">check_circle_outline</v-icon>
+                  <span>Complete</span>
+                </v-tooltip>
+              </span>
+              <span v-else-if="props.item.status === 'failed'">
+                <v-tooltip bottom>
+                  <v-icon slot="activator" color="red">highlight_off</v-icon>
+                  <span>Failed</span>
+                </v-tooltip>
+              </span>
+              <span v-else>
+                <v-tooltip bottom>
+                  <v-progress-circular
+                    slot="activator"
+                    indeterminate
+                    color="primary">
+                  </v-progress-circular>
+                  <span>Calculating...</span>
+                </v-tooltip>
+              </span>
+            </td>
+            <td class="text-xs-center">{{ props.item.id }}</td>
+            <td class="text-xs-right">
+              {{ props.item.barriers.length }}
+            </td>
+            <td class="text-xs-right">
+              <span v-if="props.item.results">
+                {{ props.item.results.delta.total | number }}
+              </span>
+            </td>
+            <td class="text-xs-right">
+              <span v-if="props.item.results">
+                {{ props.item.results.effect.total | number }}
+              </span>
+            </td>
+            <td class="text-xs-right">
+              <v-layout row justify-end>
+                <v-tooltip bottom>
+                  <v-icon
+                    slot="activator" @click="loadScenario(props.item)">visibility
+                  </v-icon>
+                  <span>View/Edit Scenario</span>
+                </v-tooltip>
+                <v-tooltip bottom>
+                  <v-icon
+                    slot="activator" @click="deleteScenario(props.item)">delete
+                  </v-icon>
+                  <span>Delete Scenario</span>
+                </v-tooltip>
+              </v-layout>
+            </td>
+          </tr>
         </template>
       </v-data-table>
-      <v-layout justify-right>
+      <div>
+        <strong>Status</strong>:
+        <span v-if="nScenariosTotal === 0">No scenarios have been created</span>
+        <span v-else-if="nScenariosRemaining > 0">Running scenarios ({{ nScenariosRemaining }} remaining)</span>
+        <span v-else>All scenarios have finished running</span>
+      </div>
+    </v-card-text>
+    <v-card-actions class="pa-3">
+      <v-layout>
+        <v-btn @click="downloadScenariosCsv" small>
+          <v-icon>save_alt</v-icon> Download Scenarios
+        </v-btn>
         <v-spacer></v-spacer>
         <v-btn @click="clearScenarios" small>
           <v-icon>delete</v-icon> Delete All
         </v-btn>
       </v-layout>
-    </v-card-text>
+    </v-card-actions>
   </v-card>
 </template>
 
 <script>
 import { mapGetters, mapActions } from 'vuex';
 import generatorics from 'generatorics';
+import download from 'downloadjs';
 
 import { number } from '@/filters';
+
+const json2csv = require('json2csv');
 
 export default {
   name: 'scenario-card',
@@ -220,7 +254,21 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(['scenario', 'scenarios'])
+    ...mapGetters(['scenario', 'scenarios', 'project', 'region']),
+    nScenariosTotal() {
+      return this.scenarios.length;
+    },
+    nScenariosComplete() {
+      return this.scenarios
+        .filter(d => d.status === 'finished' || d.status === 'failed')
+        .length;
+    },
+    nScenariosRemaining() {
+      return this.nScenariosTotal - this.nScenariosComplete;
+    },
+    percentScenariosComplete() {
+      return this.nScenariosTotal > 0 ? (this.nScenariosComplete / this.nScenariosTotal) * 100 : 100;
+    }
   },
   methods: {
     ...mapActions(['deleteScenario', 'newScenario', 'loadScenario', 'clearScenarios']),
@@ -230,6 +278,13 @@ export default {
     removeBarrier(barrier) {
       const index = this.scenario.barriers.findIndex(d => d === barrier);
       this.scenario.barriers.splice(index, 1);
+    },
+    selectRow(item) {
+      if (this.scenario && this.scenario.id === item.id) {
+        this.newScenario();
+      } else {
+        this.loadScenario(item);
+      }
     },
     createSingleScenario(scenario) {
       if (!scenario || scenario.barriers.length === 0) {
@@ -269,11 +324,82 @@ export default {
 
       return this.newScenario(scenario.id + (promises.length - 1))
         .then(() => Promise.all(promises));
+    },
+    downloadScenariosCsv() {
+      if (this.scenarios.length > 0) {
+        const project = [
+          {
+            label: 'name',
+            value: this.project.name
+          },
+          {
+            label: 'description',
+            value: this.project.description
+          },
+          {
+            label: 'author',
+            value: this.project.author
+          },
+        ];
+
+        if (this.region.type === 'huc8') {
+          project.push({
+            label: 'region',
+            value: `${this.region.feature.properties.name} (HUC8 ${this.region.feature.properties.huc8})`
+          });
+        } else {
+          project.push({
+            label: 'region',
+            value: 'custom polygon'
+          });
+        }
+
+        const scenarios = this.scenarios.map(d => { // eslint-disable-line
+          return {
+            id: d.id,
+            n_barriers: d.barriers.length,
+            delta: d.results.delta.total,
+            effect: d.results.effect.total
+          };
+        });
+
+        const barriers = [];
+        this.scenarios.forEach(s => { // eslint-disable-line
+          s.barriers.forEach(b => {   // eslint-disable-line
+            barriers.push({
+              scenario_id: s.id,
+              barrier_id: b.id,
+              barrier_lat: b.lat,
+              barrier_lon: b.lon,
+              barrier_type: b.type,
+              barrier_surveyed: b.surveyed,
+              barrier_delta: b.delta,
+              barrier_effect: b.effect,
+              barrier_aquatic: b.aquatic
+            });
+          });
+        });
+
+        const projectCsv = json2csv.parse(project, { header: false });
+        const scenariosCsv = json2csv.parse(scenarios, {});
+        const barriersCsv = json2csv.parse(barriers, {});
+
+        const csv = `# Project Info\n${projectCsv}\n\n# Scenarios List\n${scenariosCsv}\n\n# Barriers List\n${barriersCsv}`;
+
+        download(csv, 'scenarios.csv', 'text/csv');
+      } else {
+        alert('No scenarios');
+      }
     }
   }
 };
 </script>
 
-<style scoped>
-
+<style>
+table.v-table tbody td:first-child, table.v-table tbody td:not(:first-child), table.v-table tbody th:first-child, table.v-table tbody th:not(:first-child), table.v-table thead td:first-child, table.v-table thead td:not(:first-child), table.v-table thead th:first-child, table.v-table thead th:not(:first-child) {
+  padding: 0 10px
+}
+tr.selected {
+  background: #DDD;
+}
 </style>
