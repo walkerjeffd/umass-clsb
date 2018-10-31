@@ -42,20 +42,18 @@ module.exports = {
           min: 1
         }
       }
+    },
+    {
+      id: 'aquatic',
+      label: 'Aquatic Score',
+      formats: {
+        text: ',.2f',
+        axis: ',.1s'
+      },
+      scale: {
+        type: 'continuous',
+        transform: {}
+      }
     }
-    // {
-    //   id: 'type',
-    //   label: 'Barrier Type',
-    //   formats: {
-    //     text: null,
-    //     axis: null
-    //   },
-    //   scale: {
-    //     type: 'categorical',
-    //     transform: {
-    //       type: null
-    //     }
-    //   }
-    // }
   ]
 };
