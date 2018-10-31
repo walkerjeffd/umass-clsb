@@ -21,7 +21,11 @@ export default new Vuex.Store({
     project: null,
     region: null,
     barriers: [],
-    scenario: null,
+    scenario: {
+      id: 0,
+      barriers: [],
+      status: 'new'
+    },
     scenarios: []
   },
   getters: {
@@ -142,14 +146,12 @@ export default new Vuex.Store({
           scenario.status = 'calculating';
           commit('SAVE_SCENARIO', scenario);
 
-          setTimeout(() => {
-            scenario.network = graph.trim(targets, network.nodes, network.edges);
-            const { nodes, edges } = scenario.network;
-            scenario.results = graph.linkages(targets, nodes, edges);
+          scenario.network = graph.trim(targets, network.nodes, network.edges);
+          const { nodes, edges } = scenario.network;
+          scenario.results = graph.linkages(targets, nodes, edges);
 
-            scenario.status = 'finished';
-            commit('SAVE_SCENARIO', scenario);
-          }, 2000);
+          scenario.status = 'finished';
+          commit('SAVE_SCENARIO', scenario);
         })
         .catch((err) => {
           alert('Error: Unable to calculate effect for selected barrier ids');
