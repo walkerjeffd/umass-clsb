@@ -10,9 +10,9 @@ echo Merging culverts and dams into barriers table...
 psql -h $SHEDS_CLSB_DB_HOST -p $SHEDS_CLSB_DB_PORT -U $SHEDS_CLSB_DB_USER -d $SHEDS_CLSB_DB_DBNAME -c "
 DROP TABLE IF EXISTS barriers;
 CREATE TABLE barriers AS (
-  SELECT 'c-' || id as id, x_coord, y_coord, effect, effect_ln, delta, 'culvert' AS type, geom FROM culverts
+  SELECT 'c-' || id as id, x_coord, y_coord, effect, effect_ln, delta, surveyed::integer::boolean as surveyed, aquatic, 'culvert' AS type, geom FROM culverts
   UNION
-  SELECT 'd-' || damid as id, x_coord, y_coord, effect, effect_ln, delta, 'dam' AS type, geom FROM dams
+  SELECT 'd-' || damid as id, x_coord, y_coord, effect, effect_ln, delta, false as surveyed, 0.0 as aquatic, 'dam' AS type, geom FROM dams
 );
 ALTER TABLE barriers ADD COLUMN lat REAL, ADD COLUMN lon REAL;
 UPDATE barriers SET

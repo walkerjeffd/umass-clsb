@@ -12,7 +12,7 @@ function getTest() {
 
 function getBarriers(barrierIds) {
   const sql = `
-    SELECT b.id, b.x_coord::real, b.y_coord::real, b.effect::real, b.effect_ln::real, b.delta::real, b.type, b.lat, b.lon, bn.node_id
+    SELECT b.id, b.x_coord::real, b.y_coord::real, b.effect::real, b.effect_ln::real, b.delta::real, b.surveyed, b.aquatic::real, b.type, b.lat, b.lon, bn.node_id
     FROM barriers b
     LEFT JOIN barrier_node bn ON b.id = bn.barrier_id
     WHERE b.id = ANY (:barrierIds)
@@ -72,7 +72,7 @@ function getNetwork(barrierIds) {
 
 function getBarriersInGeoJSON(feature) {
   const sql = `
-    SELECT b.id, b.x_coord::real, b.y_coord::real, b.effect::real, b.effect_ln::real, b.delta::real, b.type, b.lat, b.lon, bn.node_id
+    SELECT b.id, b.x_coord::real, b.y_coord::real, b.effect::real, b.effect_ln::real, b.delta::real, b.surveyed, b.aquatic::real, b.type, b.lat, b.lon, bn.node_id
     FROM barriers b
     LEFT JOIN barrier_node bn ON b.id = bn.barrier_id
     WHERE ST_Within(
