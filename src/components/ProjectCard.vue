@@ -56,7 +56,7 @@ import { number } from '@/filters';
 export default {
   name: 'project-card',
   computed: {
-    ...mapGetters(['project', 'region', 'barriers'])
+    ...mapGetters(['project', 'region', 'barriers', 'scenarios'])
   },
   filters: {
     number

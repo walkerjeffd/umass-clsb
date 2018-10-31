@@ -53,7 +53,7 @@ export default {
     return {
       svg: null,
       axisHeight: 30,
-      width: 300
+      width: 576
     };
   },
   computed: {
@@ -104,8 +104,8 @@ export default {
     resize() {
       let width = this.$el.offsetWidth - this.margins.left - this.margins.right;
 
-      if (this.$el.offsetWidth === 0) {
-        width = 400;
+      if (this.$el.offsetWidth <= 0) {
+        width = 576;
       }
 
       if (this.maxWidth && width > this.maxWidth) {
