@@ -30,11 +30,8 @@
     <v-divider></v-divider>
     <v-card-actions class="pa-3">
       <v-layout justify-space-between>
-        <v-btn small disabled>
-          <v-icon>edit</v-icon> Edit
-        </v-btn>
         <v-btn @click="downloadJson()" small>
-          <v-icon>file_download</v-icon> Export
+          <v-icon>file_download</v-icon> Save/Export
         </v-btn>
         <v-spacer></v-spacer>
         <v-btn to="/project/new" small>
