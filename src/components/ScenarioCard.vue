@@ -146,6 +146,7 @@
         ]"
         :items="scenarios"
         :loading="nScenariosTotal > 0"
+        :pagination.sync="pagination"
         no-data-text="No scenarios have been created yet.">
         <v-progress-linear slot="progress" color="blue" v-model="percentScenariosComplete"></v-progress-linear>
         <template slot="items" slot-scope="props">
@@ -259,6 +260,10 @@ export default {
           show: false,
           text: null
         }
+      },
+      pagination: {
+        sortBy: 'results.effect.total',
+        descending: true
       }
     };
   },
