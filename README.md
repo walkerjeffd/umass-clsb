@@ -4,6 +4,11 @@ Critical Linkages Web Application
 Jeffrey D Walker, PhD  
 [Walker Environmental Research LLC](https://walkerenvres.com)
 
+and
+
+Ben Letcher, PhD
+[USGS Conte Anadromous Fish Lab](https://www.usgs.gov/centers/lsc) and [UMass Amherst](https://eco.umass.edu/people/faculty/letcher-ben/)
+
 *Prepared for*:
 
 Scott Jackson and Brad Compton  
@@ -15,7 +20,43 @@ UMass Amherst
 
 This repo contains the source code for the Critical Linkages Scenario Builder (CLSB) web application.
 
-The development version of the shiny app is available at: http://shiny.ecosheds.org/users/jeff/clsb
+## Quick Start
+
+Clone the repo
+
+```
+git clone git@github.com:walkerjeffd/umass-clsb.git
+cd umass-clsb
+```
+
+Install npm packages
+
+```
+npm install
+```
+
+Set up configuration file for database operations (not required if just running the app).
+
+```
+cp config.template.sh config.sh
+nano config.sh                   # set db connection settings
+```
+
+Set up configuration for API
+
+```
+cp api/config.template.js api/config.js
+nano api/config.js               # set db connection settings
+```
+
+Run API and webpack dev server in separate terminals (both must be running at the same time). Use `screen` or `tmux` if appropriate.
+
+```
+npm run api                      # API on localhost:8000
+npm run serve                    # app on localhost:8080
+```
+
+Open web browser at `http://localhost:8080`
 
 ## Datasets
 
@@ -157,209 +198,3 @@ graph.linkages
 Each function is stored within its own R script i nthe `r/functions/` directory.
 
 The `r/load-functions.R` script will load all functions are once (requires `cwd = r/`).
-
-### Demo Calculation
-
-Run the `r/demo.R` code line-by-line.
-
-## Shiny App
-
-After setting up database, first create huc8.geojson file.
-
-```
-cd db/export/
-./huc8-geojson.sh ../../r/geojson/huc8.geojson
-```
-
-Then run `r/load-huc8.R` to convert from geojson to rds.
-
-```
-cd r
-Rscript load-huc8.R
-```
-
-Create symbolic link to shiny app for deployment
-
-```
-cd ~/ShinyApps
-ln -s ~/path/to/umass-clsb/r/shiny ~/ShinyApps/clsb
-```
-
-## Web Application
-
-Created using vue-cli 3.
-
-### Project setup
-```
-npm install
-```
-
-### Compiles and hot-reloads for development
-```
-npm run serve
-```
-
-### Compiles and minifies for production
-```
-npm run build
-```
-
-### Lints and fixes files
-```
-npm run lint
-```
-
-## Data Types
-
-Data types returned from API.
-
-```js
-barrier = {
-  id: '<string>',
-  x_coord: '<number>',
-  y_coord: '<number>',
-  effect: '<number>',
-  effect_ln: '<number>',
-  delta: '<number>',
-  type: '"dam"|"culvert"',
-  lat: '<number>',
-  lon: '<number>',
-  node_id: '<string>',
-}
-node = {
-  node_id: '<string>',
-  x: '<number>',
-  y: '<number>',
-  lat: '<number>',
-  lon: '<number>',
-  cost: '<number>',
-}
-edge = {
-  id: '<number>',
-  start_id: '<string>',
-  end_id: '<string>',
-  length: '<number>',
-  cost: '<number>',
-  value: '<number>'
-}
-```
-
-## Vuex Store
-
-```js
-{
-  // barriers in region
-  "barriers": [
-    {
-      "id": "c-328868",
-      "x_coord": 1991570,
-      "y_coord": 2441030,
-      "effect": 0,
-      "effect_ln": 0,
-      "delta": 0,
-      "type": "culvert",
-      "lat": 42.6242,
-      "lon": -71.2958,
-      "node_id": "10088000436"
-    },
-    ...
-  ],
-
-  // project metadata
-  "project": {
-    "id": "<string>",
-    "name": "<string>",
-    "description": "<string>",
-    "author": "<string>"
-  },
-
-  // project region (HUC8 or Draw)
-  "region": {
-    "type": "huc8|draw",
-    "feature": {
-      "type": "Feature",
-      "properties": {...},
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [...]
-      }
-    }
-  },
-
-  // active scenario
-  "scenario": {
-    "id": 2,
-    "barriers": [],
-    "status": "new"
-  },
-
-  // sequential ID for scenarios
-  "scenarioSeqId": 2,
-
-  // list of saved scenarios
-  "scenarios": [
-    {
-      "id": 1,
-      "status": "finished",
-
-      // selected barriers
-      "barriers": [
-        {
-          "id": "c-488893",
-          "x_coord": 1991950,
-          "y_coord": 2408090,
-          "effect": 0,
-          "effect_ln": 0,
-          "delta": 0,
-          "type": "culvert",
-          "lat": 42.3385,
-          "lon": -71.3947,
-          "node_id": "10088004840"
-        }, ...
-      ],
-
-      // trimmed network
-      "network": {
-        "edges": [
-          {
-            "id": 1011036,
-            "start_id": "10088004360",
-            "end_id": "10088004361",
-            "length": 210,
-            "cost": 32.634,
-            "value": 1.72,
-            "index": 0
-          },
-          ...
-        ],
-        "nodes": [
-          {
-            "node_id": "10088004358",
-            "x": 1991470,
-            "y": 2410100,
-            "cost": 0
-          },
-          ...
-        ]
-      },
-
-      // aquatic connectivity scores
-      "results": {
-        "delta": {
-          "total": 2312.7088734182294,
-          "values": [8.261281495911987, ...]
-        },
-        "effect": {
-          "total": 450.47919337434206,
-          "values": [2.0299148818526596, ...]
-        },
-        "kernels": {
-          "base": [4.876707229460349, ...],
-          "alt": [4.884968510956261, ...]
-        }
-      }
-    },
-    ...
-  ]
-}
-```
