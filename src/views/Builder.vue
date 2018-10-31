@@ -8,6 +8,7 @@
         :variable="variable"
         :color-scale="colorScale"
         :variable-scale="variableScale"
+        :show-surveyed="showSurveyed"
         @add-barrier="addBarrier"
         @remove-barrier="removeBarrier">
       </barriers-map>
@@ -31,11 +32,7 @@
             </v-tab>
             <v-tab
               ripple>
-              <v-icon small class="mr-1">bar_chart</v-icon> Filters
-            </v-tab>
-            <v-tab
-              ripple>
-              <v-icon small class="mr-1">map</v-icon> Map
+              <v-icon small class="mr-1">map</v-icon> Map Settings
             </v-tab>
             <v-spacer></v-spacer>
             <v-btn small outline dark @click="hideCards = !hideCards" class="mt-2 hide">
@@ -47,11 +44,6 @@
             </v-tab-item>
             <v-tab-item>
               <scenario-card v-show="!hideCards"></scenario-card>
-            </v-tab-item>
-            <v-tab-item>
-              <v-card v-show="!hideCards">
-                <v-card-text>To do...</v-card-text>
-              </v-card>
             </v-tab-item>
             <v-tab-item>
               <v-card v-show="!hideCards">
@@ -73,6 +65,14 @@
                     :variable="variable"
                     :show="showLegend">
                   </map-legend>
+                  <v-divider></v-divider>
+                  <v-checkbox
+                    v-model="showSurveyed">
+                    <template slot="label">
+                      Highlight Surveyed Culverts
+                      <svg width="32" height="32"><circle r="10" cx="16" cy="16" fill="none" stroke="#FF8F00" stroke-width="2px"></circle></svg>
+                    </template>
+                  </v-checkbox>
                 </v-card-text>
               </v-card>
             </v-tab-item>
@@ -106,12 +106,13 @@ export default {
       show: true,
       hideCards: false,
       hideVariable: false,
-      active: null,
+      active: 1,
       variable: {},
       variables: VARIABLES,
       variableScale: null,
       colorScale: null,
-      showLegend: false
+      showLegend: false,
+      showSurveyed: false
     };
   },
   components: {
