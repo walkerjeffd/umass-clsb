@@ -6,7 +6,7 @@ module.exports = {
   },
   production: {
     api: {
-      url: 'http://localhost:8030/'
+      url: 'http://ecosheds.org:8030/'
     }
   }
 };
