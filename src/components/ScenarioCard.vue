@@ -22,8 +22,8 @@
         <span v-if="scenario.barriers.length === 0">None</span>
       </div>
     </v-card-text>
-    <v-card-actions class="pl-3">
-      <v-layout>
+    <v-card-actions class="pl-3 mb-2">
+      <v-layout row wrap>
         <v-btn
           @click="createSingleScenario(scenario)"
           small
@@ -34,7 +34,7 @@
           @click="batch.show = true"
           small
           :disabled="scenario.barriers.length === 0">
-          <v-icon>scatter_plot</v-icon> Create Subsets
+          <v-icon>scatter_plot</v-icon> Create Subset Scenarios
         </v-btn>
         <v-spacer></v-spacer>
         <v-btn

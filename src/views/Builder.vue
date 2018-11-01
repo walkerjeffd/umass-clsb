@@ -1,6 +1,6 @@
 <template>
-  <v-container fluid fill-height grid-list-xs class="pa-2">
-    <div class="map-container">
+  <div>
+    <v-layout class="map-container" v-if="$vuetify.breakpoint.mdAndUp">
       <barriers-map
         :region="region"
         :barriers="barriers"
@@ -12,75 +12,92 @@
         @add-barrier="addBarrier"
         @remove-barrier="removeBarrier">
       </barriers-map>
-    </div>
-    <v-layout row>
-      <v-flex xs12 md6 lg4>
-        <v-card>
-          <v-tabs
-            v-model="active"
-            color="blue"
-            dark
-            slider-color="white"
-            @input="onTab">
-            <v-tab
-              ripple>
-              <v-icon small class="mr-1">assignment</v-icon> Project
-            </v-tab>
-            <v-tab
-              ripple>
-              <v-icon small class="mr-1">scatter_plot</v-icon> Scenarios
-            </v-tab>
-            <v-tab
-              ripple>
-              <v-icon small class="mr-1">map</v-icon> Map Settings
-            </v-tab>
-            <v-spacer></v-spacer>
-            <v-btn small outline dark @click="hideCards = !hideCards" class="mt-2 hide">
-              <v-icon v-if="!hideCards">keyboard_arrow_up</v-icon>
-              <v-icon v-else>keyboard_arrow_down</v-icon>
-            </v-btn>
-            <v-tab-item>
-              <project-card v-show="!hideCards"></project-card>
-            </v-tab-item>
-            <v-tab-item>
-              <scenario-card v-show="!hideCards"></scenario-card>
-            </v-tab-item>
-            <v-tab-item>
-              <v-card v-show="!hideCards">
-                <v-card-text class="py-2" v-show="!hideVariable">
-                  <v-select
-                    v-model="variable"
-                    :items="variables"
-                    item-text="label"
-                    item-value="id"
-                    label="Select Variable"
-                    return-object>
-                  </v-select>
-                  <map-legend
-                    :id="'a'"
-                    :height="20"
-                    :width="400"
-                    :margins="{left: 10, right:10}"
-                    :data="barriers"
-                    :variable="variable"
-                    :show="showLegend">
-                  </map-legend>
-                  <v-divider></v-divider>
-                  <v-checkbox
-                    v-model="showSurveyed">
-                    <template slot="label">
-                      Highlight Surveyed Culverts
-                      <svg width="32" height="32"><circle r="10" cx="16" cy="16" fill="none" stroke="#FF8F00" stroke-width="2px"></circle></svg>
-                    </template>
-                  </v-checkbox>
-                </v-card-text>
-              </v-card>
-            </v-tab-item>
-          </v-tabs>
-        </v-card>
-      </v-flex>
     </v-layout>
-  </v-container>
+    <v-container fluid fill-height grid-list-xs class="pa-2">
+      <v-layout row>
+        <v-flex xs12 md6 lg4>
+          <v-card>
+            <v-tabs
+              v-model="active"
+              color="blue"
+              dark
+              slider-color="white"
+              @input="onTab">
+              <v-tab
+                ripple>
+                <v-icon small class="mr-1">assignment</v-icon> Project
+              </v-tab>
+              <v-tab
+                ripple>
+                <v-icon small class="mr-1">scatter_plot</v-icon> Scenarios
+              </v-tab>
+              <v-tab
+                ripple>
+                <v-icon small class="mr-1">map</v-icon> Map Settings
+              </v-tab>
+              <v-spacer></v-spacer>
+              <v-btn small outline dark @click="hideCards = !hideCards" class="mt-2 hide">
+                <v-icon v-if="!hideCards">keyboard_arrow_up</v-icon>
+                <v-icon v-else>keyboard_arrow_down</v-icon>
+              </v-btn>
+              <v-tab-item>
+                <project-card v-show="!hideCards"></project-card>
+              </v-tab-item>
+              <v-tab-item>
+                <scenario-card v-show="!hideCards"></scenario-card>
+              </v-tab-item>
+              <v-tab-item>
+                <v-card v-show="!hideCards">
+                  <v-card-text class="py-2" v-show="!hideVariable">
+                    <v-select
+                      v-model="variable"
+                      :items="variables"
+                      item-text="label"
+                      item-value="id"
+                      label="Select Variable"
+                      return-object>
+                    </v-select>
+                    <map-legend
+                      :id="'a'"
+                      :height="20"
+                      :width="400"
+                      :margins="{left: 10, right:10}"
+                      :data="barriers"
+                      :variable="variable"
+                      :show="showLegend">
+                    </map-legend>
+                    <v-divider></v-divider>
+                    <v-checkbox
+                      v-model="showSurveyed">
+                      <template slot="label">
+                        Highlight Surveyed Culverts
+                        <svg width="32" height="32"><circle r="10" cx="16" cy="16" fill="none" stroke="#FF8F00" stroke-width="2px"></circle></svg>
+                      </template>
+                    </v-checkbox>
+                  </v-card-text>
+                </v-card>
+              </v-tab-item>
+            </v-tabs>
+          </v-card>
+        </v-flex>
+      </v-layout>
+    </v-container>
+    <v-container fluid fill-height grid-list-xs class="pa-2" v-if="$vuetify.breakpoint.smAndDown">
+      <div style="width:100%;height:400px">
+        <barriers-map
+          :region="region"
+          :barriers="barriers"
+          :selected="scenario.barriers"
+          :variable="variable"
+          :color-scale="colorScale"
+          :variable-scale="variableScale"
+          :show-surveyed="showSurveyed"
+          @add-barrier="addBarrier"
+          @remove-barrier="removeBarrier">
+        </barriers-map>
+      </div>
+    </v-container>
+  </div>
 </template>
 
 <script>
