@@ -68,7 +68,7 @@ L.Control.Legend = L.Control.extend({
 L.control.legend = opts => new L.Control.Legend(opts);
 
 export default {
-  props: ['selected', 'barriers', 'region', 'variable', 'colorScale', 'variableScale', 'showSurveyed'],
+  props: ['selected', 'barriers', 'region', 'variable', 'colorScale', 'variableScale', 'highlight'],
   data() {
     return {
       map: null,
@@ -80,7 +80,7 @@ export default {
       layers: {
         barriers: null,
         selected: null,
-        surveyed: null,
+        highlight: null,
         region: null
       },
       draw: {
@@ -217,7 +217,7 @@ export default {
     const g = this.svg.append('g').attr('class', 'leaflet-zoom-hide');
     this.layers.region = g.append('g').attr('class', 'region');
     this.layers.barriers = g.append('g').attr('class', 'barriers');
-    this.layers.surveyed = g.append('g').attr('class', 'surveyed');
+    this.layers.highlight = g.append('g').attr('class', 'highlight');
     this.layers.selected = g.append('g').attr('class', 'selected');
 
     this.svg.call(this.tip.html(d => `
@@ -243,13 +243,6 @@ export default {
       this.zoomLevel = this.map.getZoom();
       this.render();
     });
-    // this.map.on('draw:drawstart', (ev) => {
-    //   console.log('map:drawstart', ev);
-    // });
-    // this.map.on('draw:drawstop', (ev) => {
-    //   console.log('map:drawstop', ev);
-    //   console.log('layer', this.draw.selected.layer);
-    // });
     this.map.on('draw:created', ({ layer }) => {
       const points = {
         type: 'FeatureCollection',
@@ -289,8 +282,11 @@ export default {
     barriers() {
       this.render();
     },
-    showSurveyed() {
-      this.drawSurveyed();
+    highlight: {
+      handler() {
+        this.drawHighlight();
+      },
+      deep: true
     }
   },
   methods: {
@@ -298,7 +294,7 @@ export default {
       this.resizeSvg();
       this.drawRegion();
       this.drawBarriers();
-      this.drawSurveyed();
+      this.drawHighlight();
       this.drawSelected();
     },
     drawRegion() {
@@ -390,7 +386,7 @@ export default {
 
       barriers.exit().remove();
     },
-    drawSurveyed() {
+    drawHighlight() {
       const r = this.pointRadius;
 
       const typePaths = {
@@ -398,29 +394,45 @@ export default {
         culvert: d3.symbol().type(d3.symbolCircle).size(r * 10 * 3),
       };
 
-      let surveyedBarriers = [];
-      if (this.showSurveyed) {
-        surveyedBarriers = this.barriers.filter(d => d.surveyed);
+      let barriers = [];
+      if (this.highlight.surveyed) {
+        barriers = [
+          ...barriers,
+          ...this.barriers.filter(d => (d.type === 'culvert' && d.surveyed))
+        ];
+      }
+      if (this.highlight.dams) {
+        barriers = [
+          ...barriers,
+          ...this.barriers.filter(d => d.type === 'dam')
+        ];
       }
 
-      const surveyed = this.layers.surveyed
-        .selectAll('path.surveyed')
-        .data(surveyedBarriers, d => d.id);
+      const highlights = this.layers.highlight
+        .selectAll('path.highlight')
+        .data(barriers, d => d.id);
 
-      surveyed.enter()
+      highlights.enter()
         .append('path')
-        .attr('class', 'surveyed')
+        .attr('class', 'highlight')
         .attr('fill', 'none')
-        .attr('stroke', '#FF8F00')
+        .attr('stroke', (d) => {
+          if (d.type === 'culvert' && d.surveyed) {
+            return '#FF8F00';
+          }
+          if (d.type === 'dam') {
+            return '#D500FF';
+          }
+        })
         .attr('stroke-width', '1.5px')
-        .merge(surveyed)
+        .merge(highlights)
         .attr('transform', (d) => {
           const point = this.map.latLngToLayerPoint(new L.LatLng(d.lat, d.lon));
           return `translate(${point.x},${point.y})`;
         })
         .attr('d', d => typePaths[d.type](d));
 
-      surveyed.exit().remove();
+      highlights.exit().remove();
     },
     drawSelected() {
       const r = this.pointRadius;

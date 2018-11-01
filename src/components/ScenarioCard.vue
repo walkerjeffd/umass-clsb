@@ -6,11 +6,10 @@
         ID: {{ scenario.id }}
       </div>
       <div>
-        # Barriers: {{ scenario.barriers.length }}
+        # Barriers Selected: {{ scenario.barriers.length }}
       </div>
 
       <div style="max-height:125px;overflow-y:scroll;">
-        Selected Barriers:
         <v-chip
           v-for="barrier in scenario.barriers"
           :key="barrier.id"

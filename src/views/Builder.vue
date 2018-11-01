@@ -1,5 +1,6 @@
 <template>
   <div>
+    <!-- map on md-xl devices -->
     <v-layout class="map-container" v-if="$vuetify.breakpoint.mdAndUp">
       <barriers-map
         :region="region"
@@ -8,11 +9,13 @@
         :variable="variable"
         :color-scale="colorScale"
         :variable-scale="variableScale"
-        :show-surveyed="showSurveyed"
+        :highlight="highlight"
         @add-barrier="addBarrier"
         @remove-barrier="removeBarrier">
       </barriers-map>
     </v-layout>
+
+    <!-- tab box -->
     <v-container fluid fill-height grid-list-xs class="pa-2">
       <v-layout row>
         <v-flex xs12 md6 lg4>
@@ -48,13 +51,13 @@
               </v-tab-item>
               <v-tab-item>
                 <v-card v-show="!hideCards">
-                  <v-card-text class="py-2" v-show="!hideVariable">
+                  <v-card-text class="py-3" v-show="!hideVariable">
                     <v-select
                       v-model="variable"
                       :items="variables"
                       item-text="label"
                       item-value="id"
-                      label="Select Variable"
+                      label="Select Color Variable"
                       return-object>
                     </v-select>
                     <map-legend
@@ -67,13 +70,23 @@
                       :show="showLegend">
                     </map-legend>
                     <v-divider></v-divider>
-                    <v-checkbox
-                      v-model="showSurveyed">
-                      <template slot="label">
-                        Highlight Surveyed Culverts
-                        <svg width="32" height="32"><circle r="10" cx="16" cy="16" fill="none" stroke="#FF8F00" stroke-width="2px"></circle></svg>
-                      </template>
-                    </v-checkbox>
+                    <v-layout row wrap>
+                      <div class="subheading grey--text text--darken-3 mt-3 mb-0">Barrier Highlights</div>
+                      <v-flex xs12 class="ml-3">
+                        <v-switch
+                          v-model="highlight.surveyed"
+                          color="#FF8F00"
+                          label="Surveyed Culverts"
+                          hide-details>
+                        </v-switch>
+                        <v-switch
+                          v-model="highlight.dams"
+                          color="#D500FF"
+                          label="Dams"
+                          hide-details>
+                        </v-switch>
+                      </v-flex>
+                    </v-layout>
                   </v-card-text>
                 </v-card>
               </v-tab-item>
@@ -82,6 +95,8 @@
         </v-flex>
       </v-layout>
     </v-container>
+
+    <!-- map on xs-sm devices -->
     <v-container fluid fill-height grid-list-xs class="pa-2" v-if="$vuetify.breakpoint.smAndDown">
       <div style="width:100%;height:400px">
         <barriers-map
@@ -129,7 +144,11 @@ export default {
       variableScale: null,
       colorScale: null,
       showLegend: false,
-      showSurveyed: false
+      showSurveyed: false,
+      highlight: {
+        surveyed: false,
+        dams: false
+      }
     };
   },
   components: {
