@@ -28,13 +28,16 @@
           @click="createSingleScenario(scenario)"
           small
           :disabled="scenario.barriers.length === 0">
-          <v-icon>play_arrow</v-icon> Run Scenario
+          <v-icon>play_arrow</v-icon> Run <span v-if="$vuetify.breakpoint.mdAndUp">&nbsp;Scenario</span>
         </v-btn>
         <v-btn
           @click="batch.show = true"
           small
           :disabled="scenario.barriers.length === 0">
-          <v-icon>scatter_plot</v-icon> Create Subset Scenarios
+          <v-icon>scatter_plot</v-icon>
+          Create
+          <span v-if="$vuetify.breakpoint.mdAndUp">&nbsp;Subset Scenarios</span>
+          <span v-if="$vuetify.breakpoint.smAndDown">&nbsp;Subsets</span>
         </v-btn>
         <v-spacer></v-spacer>
         <v-btn
