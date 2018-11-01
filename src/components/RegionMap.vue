@@ -12,7 +12,7 @@
       </div>
       <div v-else-if="type === 'draw'">
         <p v-if="draw.selected.feature">
-          Polygon has been drawn. It has an area of {{ draw.selected.areaKm2 | number }} sq. km.
+          Polygon has been drawn. It has an area of {{ draw.selected.feature.properties.areaKm2 | number }} sq. km.
         </p>
         <p v-else>
           Use the drawing tools in the upper right corner of the map to define your region of interest, then click Next.
@@ -60,8 +60,7 @@ export default {
         selected: {
           layer: new L.FeatureGroup()
             .on('click', () => {
-              this.huc8.selected.layer.clearLayers();
-              this.huc8.selected.feature = null;
+              this.clear();
             }),
           feature: null
         }
@@ -106,8 +105,9 @@ export default {
       position: 'topright',
       draw: {
         circle: false,
+        circlemarker: false,
         polygon: {
-          allowIntersection: false, // Restricts shapes to simple polygons
+          allowIntersection: false,
         },
         polyline: false,
         marker: false
@@ -116,97 +116,92 @@ export default {
         featureGroup: this.draw.selected.layer
       }
     });
-    this.map.on(L.Draw.Event.CREATED, ({ layer }) => {
-      const { selected } = this.draw;
-      if (selected.layer.getLayers().length >= 1) {
-        selected.layer.clearLayers();
-        selected.feature = null;
-      }
-      selected.layer.addLayer(layer);
-
-      const feature = selected.layer.toGeoJSON().features[0].geometry;
-      this.draw.selected.feature = feature;
-
-      const areaKm2 = geoJsonArea.geometry(feature) / 1e6;
-      console.log('area (km2) = ', areaKm2);
-      this.draw.selected.areaKm2 = areaKm2;
-
-      if (areaKm2 > 1000) {
-        alert(`Polygon area (${areaKm2.toFixed(1)} km2) exceeds maximum (1000 km2)`);
-      }
-
-      this.loadRegion();
+    this.map.on('draw:created', ({ layer }) => {
+      this.selectDraw(layer.toGeoJSON());
     });
-    this.map.on(L.Draw.Event.DELETED, () => {
-      this.draw.selected.feature = null;
-      this.draw.selected.areaKm2 = null;
+    this.map.on('draw:edited', ({ layers }) => {
+      this.selectDraw(layers.getLayers()[0].toGeoJSON());
+    });
+    this.map.on('draw:deleted', () => {
+      this.clear();
     });
 
-    this.setType(this.type, true);
+    this.setType(this.type);
+
+    if (this.feature) {
+      if (this.type === 'draw') {
+        this.selectDraw(this.feature);
+      } else if (this.type === 'huc8') {
+        this.selectHuc8(this.feature);
+      }
+    }
   },
   methods: {
-    loadRegion() {
-      let feature = null;
-      let selected;
-
-      if (this.type === 'draw') {
-        selected = this.draw.selected.layer;
-      } else if (this.type === 'huc8') {
-        selected = this.huc8.selected.layer;
+    loadRegion(feature) {
+      if (feature) {
+        this[this.type].selected.feature = feature;
+        this.$emit('loadRegion', feature);
+      } else {
+        this.clear();
       }
-
-      if (selected.getLayers().length === 1) {
-        [feature] = selected.toGeoJSON().features;
-      }
-      this.$emit('loadRegion', feature);
     },
-    clearRegion() {
+    clear() {
+      this.huc8.selected.layer.clearLayers();
+      this.draw.selected.layer.clearLayers();
+
+      this.huc8.selected.feature = null;
+      this.draw.selected.feature = null;
+
       this.$emit('loadRegion', null);
     },
-    selectHuc8(feature) {
-      this.huc8.selected.feature = feature;
-      this.huc8.selected.layer.clearLayers();
-      const layer = L.geoJson(this.huc8.selected.feature).getLayers()[0].setStyle({ color: '#FF0000' });
-      this.huc8.selected.layer.addLayer(layer);
-      this.loadRegion();
-    },
-    setType(type, initial) {
-      this.clearRegion();
-      if (initial && this.feature) {
-        // load initial feature
-        if (this.type === 'draw') {
-          const feature = L.geoJson(this.feature).getLayers()[0];
-          this.draw.selected.feature = feature;
-          this.draw.selected.layer.addLayer(this.draw.selected.feature);
-          this.draw.selected.areaKm2 = geoJsonArea.geometry(this.feature.geometry) / 1e6;
-        } else if (this.type === 'huc8') {
-          this.selectHuc8(this.feature);
-        }
+    selectDraw(feature) {
+      this.draw.selected.layer.clearLayers();
+
+      if (feature) {
+        feature.properties.areaKm2 = geoJsonArea.geometry(feature.geometry) / 1e6;
+        const layer = L.geoJson(feature).getLayers()[0];
+        this.draw.selected.layer.addLayer(layer);
       }
+
+      this.loadRegion(feature);
+    },
+    selectHuc8(feature) {
+      this.huc8.selected.layer.clearLayers();
+
+      if (feature) {
+        const layer = L.geoJson(feature).getLayers()[0]
+          .setStyle({ color: '#FF0000' });
+        this.huc8.selected.layer.addLayer(layer);
+      }
+
+      this.loadRegion(feature);
+    },
+    setType(type) {
+      this.clear();
+
       if (type === 'draw') {
         this.map.addControl(this.draw.control);
         this.map.addLayer(this.draw.selected.layer);
-        this.huc8.selected.layer.clearLayers();
       } else {
         this.map.removeControl(this.draw.control);
         this.map.removeLayer(this.draw.selected.layer);
       }
 
       if (type === 'huc8') {
+        let promise;
         if (!this.huc8.features.data) {
-          axios.get('/static/huc8.json')
+          promise = axios.get('/static/huc8.json')
             .then((response) => {
               this.huc8.features.data = response.data.features;
               this.huc8.features.layer.addData(this.huc8.features.data);
-
-              this.map.addLayer(this.huc8.features.layer);
-              this.map.addLayer(this.huc8.selected.layer);
             });
         } else {
+          promise = Promise.resolve();
+        }
+        promise.then(() => {
           this.map.addLayer(this.huc8.features.layer);
           this.map.addLayer(this.huc8.selected.layer);
-        }
-        this.draw.selected.layer.clearLayers();
+        });
       } else {
         this.map.removeLayer(this.huc8.features.layer);
         this.map.removeLayer(this.huc8.selected.layer);

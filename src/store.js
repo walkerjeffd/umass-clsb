@@ -69,8 +69,12 @@ export default new Vuex.Store({
     }
   },
   actions: {
-    setProject({ commit }, project) {
+    createProject({ commit }, { project, region, barriers }) {
       commit('SET_PROJECT', project);
+      commit('SET_REGION', region);
+      commit('SET_BARRIERS', barriers);
+      commit('SET_SCENARIOS', []);
+      return Promise.resolve();
     },
     loadProjectFile({ commit, dispatch }, json) {
       if (!json) {
