@@ -20,18 +20,19 @@
         <v-flex xs3 class="text-xs-right font-weight-medium">Region:</v-flex>
         <v-flex xs9>
           <div v-if="region.type === 'huc8'">
-            {{region.feature.properties.name}}
-            (HUC8 {{region.feature.properties.huc8}})
+            HUC8 Watershed ({{region.feature.properties.name}}, {{region.feature.properties.huc8}})
           </div>
-          <div v-else>Custom Polygon</div>
+          <div v-if="region.type === 'draw'">
+            Custom polygon area ({{region.feature.properties.areaKm2 | number}} sq. km)
+          </div>
         </v-flex>
       </v-layout>
     </v-card-text>
     <v-divider></v-divider>
     <v-card-actions class="pa-3">
       <v-layout justify-space-between>
-        <v-btn @click="downloadJson()" small>
-          <v-icon>file_download</v-icon> Save/Export
+        <v-btn @click="dialog.export = true" small>
+          <v-icon>file_download</v-icon> Save/Export Project
         </v-btn>
         <v-spacer></v-spacer>
         <v-btn to="/project/new" small>
@@ -39,6 +40,43 @@
         </v-btn>
       </v-layout>
     </v-card-actions>
+    <v-dialog
+      v-model="dialog.export"
+      max-width="400">
+      <v-card>
+        <v-card-title
+          class="headline"
+          primary-title>
+          Export/Save Project
+        </v-card-title>
+
+        <v-card-text>
+          <p>
+            Click the button below to download your project as a text file. The file will be automatically saved to your browser's downloads folder.
+          </p>
+          <p>
+            The project file can be re-loaded at a later time or on a different computer using the "Load Existing Project" option on the CLSB homepage.
+          </p>
+          <v-layout row justify-center>
+            <v-btn @click="downloadJson()" color="blue" dark>
+              <v-icon>file_download</v-icon> Download Project File
+            </v-btn>
+          </v-layout>
+        </v-card-text>
+
+        <v-divider></v-divider>
+
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn
+            color="primary"
+            flat
+            @click="dialog.export = false">
+            Close
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-card>
 </template>
 
@@ -52,6 +90,13 @@ import { number } from '@/filters';
 
 export default {
   name: 'project-card',
+  data() {
+    return {
+      dialog: {
+        export: false
+      }
+    };
+  },
   computed: {
     ...mapGetters(['project', 'region', 'barriers', 'scenarios'])
   },
