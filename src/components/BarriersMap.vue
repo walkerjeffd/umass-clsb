@@ -309,6 +309,8 @@ export default {
         .attr('d', this.path);
     },
     resizeSvg() {
+      if (!this.region) return;
+
       const bounds = this.path.bounds(this.region.feature);
       const topLeft = bounds[0];
       const bottomRight = bounds[1];
@@ -323,6 +325,7 @@ export default {
         .attr('transform', `translate(${-(topLeft[0] - (padding / 2))},${-(topLeft[1] - (padding / 2))})`);
     },
     fitToRegion() {
+      if (!this.region) return;
       const bounds = d3.geoBounds(this.region.feature);
       const topLeft = bounds[0];
       const bottomRight = bounds[1];

@@ -136,7 +136,7 @@ import { mapActions } from 'vuex';
 import axios from 'axios';
 
 import RegionMap from '@/components/RegionMap.vue';
-import { DRAW_MAX_AREA_KM2, VERSION } from '@/constants';
+import { DRAW_MAX_AREA_KM2, VERSION, REGION_TYPES } from '@/constants';
 import { number } from '@/filters';
 
 export default {
@@ -160,16 +160,7 @@ export default {
         feature: null,
         error: '',
         loading: false,
-        types: [
-          {
-            text: 'Watershed (HUC8)',
-            value: 'huc8'
-          },
-          {
-            text: 'Draw Polygon',
-            value: 'draw'
-          }
-        ]
+        types: REGION_TYPES
       },
       barriers: [],
       creatingProject: false

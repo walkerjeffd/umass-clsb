@@ -118,7 +118,8 @@
 <script>
 import { mapActions, mapGetters } from 'vuex';
 
-import { VARIABLES } from '@/constants';
+import { VERSION, VARIABLES } from '@/constants';
+import * as errors from '@/errors';
 
 import BarriersMap from '@/components/BarriersMap.vue';
 import ProjectCard from '@/components/ProjectCard.vue';
@@ -160,10 +161,34 @@ export default {
   computed: {
     ...mapGetters(['project', 'barriers', 'scenario', 'scenarios', 'region'])
   },
+  beforeCreate() {
+
+  },
   created() {
-    if (!this.project) {
-      this.loadProjectFile(data);
+    const localProject = localStorage.getItem('clsb');
+
+    const projectFile = localProject ? JSON.parse(localProject) : data;
+
+    if (localProject) {
+      console.log('loading localStorage project');
+    } else {
+      console.log('loading dev project');
     }
+
+    this.loadProject(projectFile)
+      .catch((err) => {
+        if (err instanceof errors.VersionNotFoundError) {
+          console.log('Version not found in project file');
+        } else if (err instanceof errors.IncompatibleVersionError) {
+          console.log('Invalid project version');
+        } else if (err instanceof errors.InvalidProjectError) {
+          console.log('Invalid project file', err);
+        } else {
+          console.log('Failed to load project (unknown error)', err);
+        }
+        localStorage.removeItem('clsb');
+      });
+
     this.setVariableById('effect');
   },
   watch: {
@@ -175,7 +200,7 @@ export default {
     }
   },
   methods: {
-    ...mapActions(['loadProjectFile']),
+    ...mapActions(['loadProject']),
     setScales() {
       this.variableScale = this.getVariableScale(this.variable, this.barriers);
       this.colorScale = this.getColorScale(this.variable);

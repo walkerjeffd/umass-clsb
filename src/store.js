@@ -1,10 +1,15 @@
 import Vue from 'vue';
 import Vuex from 'vuex';
 import axios from 'axios';
+import Joi from 'joi';
 
+import schema from '@/schema';
 import { VERSION } from '@/constants';
+import * as errors from '@/errors';
 
 const graph = require('../lib/graph/');
+
+let exceedsLocalStorage = false;
 
 Vue.use(Vuex);
 
@@ -16,8 +21,9 @@ function cloneScenario(d) {
   };
 }
 
-export default new Vuex.Store({
+const store = new Vuex.Store({
   state: {
+    version: VERSION,
     project: null,
     region: null,
     barriers: [],
@@ -76,33 +82,34 @@ export default new Vuex.Store({
       commit('SET_SCENARIOS', []);
       return Promise.resolve();
     },
-    loadProjectFile({ commit, dispatch }, json) {
-      if (!json) {
+    loadProject({ commit, dispatch }, payload) {
+      if (!payload) {
         return Promise.reject(new Error('Unable to read file or it is empty'));
       }
-      if (!json.project) {
-        return Promise.reject(new Error('Missing project'));
-      }
-      if (!json.barriers) {
-        return Promise.reject(new Error('Missing barriers'));
-      }
-      if (!json.region) {
-        return Promise.reject(new Error('Missing region'));
-      }
-      if (!json.scenarios) {
-        return Promise.reject(new Error('Missing scenarios'));
-      }
-      if (!json.version) {
-        return Promise.reject(new Error('Missing version'));
-      }
-      if (json.version !== VERSION) {
-        return Promise.reject(new Error('Incompatible file version'));
+
+      // validate minimal schema
+      let { error } = Joi.validate(payload, schema.minimal);
+
+      if (error) {
+        return Promise.reject(new errors.VersionNotFoundError('Project file is invalid or does not contain a valid version number'));
       }
 
-      commit('SET_PROJECT', json.project);
-      commit('SET_BARRIERS', json.barriers);
-      commit('SET_REGION', json.region);
-      commit('SET_SCENARIOS', json.scenarios);
+      // check version
+      if (payload.version !== VERSION) {
+        return Promise.reject(new errors.IncompatibleVersionError('Project file is not compatible with this version of the application'));
+      }
+
+      // validate full schema
+      ({ error } = Joi.validate(payload, schema.full));
+
+      if (error) {
+        return Promise.reject(new errors.InvalidProjectError('Invalid project file'));
+      }
+
+      commit('SET_PROJECT', payload.project);
+      commit('SET_BARRIERS', payload.barriers);
+      commit('SET_REGION', payload.region);
+      commit('SET_SCENARIOS', payload.scenarios);
       return dispatch('newScenario');
     },
     clearScenarios({ commit }) {
@@ -138,7 +145,7 @@ export default new Vuex.Store({
     loadScenario({ commit }, scenario) {
       commit('SET_SCENARIO', cloneScenario(scenario));
     },
-    saveScenario({ commit }, scenario) {
+    runScenario({ commit }, scenario) {
       const barrierIds = scenario.barriers.map(d => d.id);
 
       scenario.status = 'fetching';
@@ -150,12 +157,18 @@ export default new Vuex.Store({
           scenario.status = 'calculating';
           commit('SAVE_SCENARIO', scenario);
 
-          scenario.network = graph.trim(targets, network.nodes, network.edges);
-          const { nodes, edges } = scenario.network;
-          scenario.results = graph.linkages(targets, nodes, edges);
+          setTimeout(() => {
+            const { nodes, edges } = graph.trim(targets, network.nodes, network.edges);
+            const results = graph.linkages(targets, nodes, edges);
 
-          scenario.status = 'finished';
-          commit('SAVE_SCENARIO', scenario);
+            scenario.results = {
+              delta: results.delta.total,
+              effect: results.effect.total
+            };
+
+            scenario.status = 'finished';
+            commit('SAVE_SCENARIO', scenario);
+          }, 100);
         })
         .catch((err) => {
           alert('Error: Unable to calculate effect for selected barrier ids');
@@ -166,3 +179,34 @@ export default new Vuex.Store({
     }
   }
 });
+
+store.subscribe((mutation, state) => {
+  if (mutation.type === 'SAVE_SCENARIO' &&
+      mutation.payload.status !== 'finished' &&
+      mutation.payload.status !== 'failed') {
+    // skip localStorage update if saving a new scenario that has not finished or failed
+    return;
+  }
+
+  if (exceedsLocalStorage) {
+    return;
+  }
+
+  const data = {
+    version: state.version,
+    project: state.project,
+    region: state.region,
+    barriers: state.barriers,
+    scenarios: state.scenarios
+      .filter(d => d.status === 'failed' || d.status === 'finished')
+  };
+
+  try {
+    localStorage.setItem('clsb', JSON.stringify(data));
+  } catch (e) {
+    exceedsLocalStorage = true;
+    alert('Warning! The current project cannot be auto-saved in your browser because it exceeds the maximum allowable size.\n\nYou may continue to build new scenarios. However, you must export the project using the Export/Save button on the Project tab or the Download button on the Scenarios tab to avoid losing your work.');
+  }
+});
+
+export default store;

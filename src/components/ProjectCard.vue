@@ -1,23 +1,23 @@
 <template>
   <v-card>
     <v-card-text>
-      <v-layout row wrap>
-        <v-flex xs3 class="text-xs-right font-weight-medium">Project:</v-flex>
+      <v-layout row wrap v-if="project">
+        <v-flex xs3 class="text-xs-right font-weight-medium pr-3">Project:</v-flex>
         <v-flex xs9>{{project.name}}</v-flex>
 
-        <v-flex xs3 class="text-xs-right font-weight-medium">Description:</v-flex>
+        <v-flex xs3 class="text-xs-right font-weight-medium pr-3">Description:</v-flex>
         <v-flex xs9 class="text-truncate">
           {{project.description}}
           <span v-if="!project.description">None</span>
         </v-flex>
 
-        <v-flex xs3 class="text-xs-right font-weight-medium">Author:</v-flex>
+        <v-flex xs3 class="text-xs-right font-weight-medium pr-3">Author:</v-flex>
         <v-flex xs9>
           {{project.author}}
           <span v-if="!project.author">None</span>
         </v-flex>
 
-        <v-flex xs3 class="text-xs-right font-weight-medium">Region:</v-flex>
+        <v-flex xs3 class="text-xs-right font-weight-medium pr-3">Region:</v-flex>
         <v-flex xs9>
           <div v-if="region.type === 'huc8'">
             HUC8 Watershed ({{region.feature.properties.name}}, {{region.feature.properties.huc8}})
@@ -116,6 +116,8 @@ export default {
       const filename = `${slugify(name, { lower: true })}.json`;
 
       download(JSON.stringify(data, null, 2), filename, 'application/json');
+
+      this.dialog.export = false;
     }
   }
 };

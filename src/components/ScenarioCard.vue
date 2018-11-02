@@ -1,15 +1,15 @@
 <template>
   <v-card>
     <v-card-text>
-      <h3>New Scenario</h3>
+      <h3>
+        <span v-if="scenario.status === 'new'">New</span>
+        <span v-else>Existing</span>
+        Scenario (ID: {{ scenario.id }})
+      </h3>
       <div>
-        ID: {{ scenario.id }}
+        # Barriers Selected: <span v-if="scenario.barriers.length > 0">{{ scenario.barriers.length }}</span><span v-else>None</span>
       </div>
-      <div>
-        # Barriers Selected: {{ scenario.barriers.length }}
-      </div>
-
-      <div style="max-height:125px;overflow-y:scroll;">
+      <div style="max-height:125px;overflow-y:scroll;" class="mt-2" v-if="scenario.barriers.length > 0">
         <v-chip
           v-for="barrier in scenario.barriers"
           :key="barrier.id"
@@ -18,7 +18,9 @@
           @input="removeBarrier(barrier)">
           {{ barrier.id }}
         </v-chip>
-        <span v-if="scenario.barriers.length === 0">None</span>
+      </div>
+      <div class="grey--text text--darken-2 mt-3" v-else>
+        <v-icon small>info</v-icon> Point and click on the map to select a barrier, or use the polygon/rectangle map tools to select multiple barriers.
       </div>
     </v-card-text>
     <v-card-actions class="pl-3 mb-2">
@@ -86,6 +88,7 @@
           @click="createBatchScenarios(scenario)"
           small
           :disabled="!batch.choose"
+          :loading="batch.loading"
           v-show="(scenario.barriers.length <= batch.max) &&
                   (scenario.barriers.length >= batch.min)">
           <v-icon>play_arrow</v-icon> Run Subset Scenarios
@@ -130,13 +133,13 @@
           },
           {
             text: 'Connectivity Gain',
-            value: 'results.delta.total',
+            value: 'results.delta',
             align: 'right',
             width: '1%'
           },
           {
             text: 'Restoration Potential',
-            value: 'results.effect.total',
+            value: 'results.effect',
             align: 'right',
             width: '1%'
           },
@@ -186,25 +189,21 @@
             </td>
             <td class="text-xs-right">
               <span v-if="props.item.results">
-                {{ props.item.results.delta.total | number }}
+                {{ props.item.results.delta | number }}
               </span>
             </td>
             <td class="text-xs-right">
               <span v-if="props.item.results">
-                {{ props.item.results.effect.total | number }}
+                {{ props.item.results.effect | number }}
               </span>
             </td>
             <td class="text-xs-right">
               <v-layout row justify-end>
                 <v-tooltip bottom>
                   <v-icon
-                    slot="activator" @click="loadScenario(props.item)">visibility
-                  </v-icon>
-                  <span>View/Edit Scenario</span>
-                </v-tooltip>
-                <v-tooltip bottom>
-                  <v-icon
-                    slot="activator" @click="deleteScenario(props.item)">delete
+                    slot="activator"
+                    @click="deleteScenario(props.item)"
+                    >delete
                   </v-icon>
                   <span>Delete Scenario</span>
                 </v-tooltip>
@@ -222,11 +221,17 @@
     </v-card-text>
     <v-card-actions class="pa-3">
       <v-layout>
-        <v-btn @click="downloadScenariosCsv" small :disabled="scenarios.length === 0">
+        <v-btn
+          @click="downloadScenariosCsv"
+          small
+          :disabled="scenarios.length === 0 || nScenariosRemaining > 0">
           <v-icon>save_alt</v-icon> Download Scenarios
         </v-btn>
         <v-spacer></v-spacer>
-        <v-btn @click="clearScenarios" small :disabled="scenarios.length === 0">
+        <v-btn
+          @click="clearScenarios"
+          small
+          :disabled="scenarios.length === 0 || nScenariosRemaining > 0">
           <v-icon>delete</v-icon> Delete All
         </v-btn>
       </v-layout>
@@ -258,13 +263,14 @@ export default {
         max: 50,
         min: 2,
         show: false,
+        loading: false,
         snackbar: {
           show: false,
           text: null
         }
       },
       pagination: {
-        sortBy: 'results.effect.total',
+        sortBy: 'results.effect',
         descending: true
       }
     };
@@ -317,7 +323,7 @@ export default {
       }
 
       return this.newScenario(scenario.id)
-        .then(() => this.$store.dispatch('saveScenario', scenario));
+        .then(() => this.$store.dispatch('runScenario', scenario));
     },
     createBatchScenarios(scenario) {
       if (!scenario || scenario.barriers.length === 0) {
@@ -329,6 +335,8 @@ export default {
         alert(`Need at least ${this.batch.choose + 1} barriers selected for batch mode`);
         return null;
       }
+
+      this.batch.loading = true;
 
       const scenariosBarriers = [...generatorics.clone.combination(scenario.barriers, this.batch.choose)];
       const { id } = scenario;
@@ -346,9 +354,10 @@ export default {
       this.batch.choose = null;
       this.batch.show = false;
 
-      return this.newScenario(scenario.id + (scenarios.length - 1))
+      this.newScenario(scenario.id + (scenarios.length - 1))
         .then(() => {
-          const promises = scenarios.map(s => this.$store.dispatch('saveScenario', s));
+          const promises = scenarios.map(s => this.$store.dispatch('runScenario', s));
+          this.batch.loading = false;
           return Promise.all(promises);
         });
     },
@@ -367,6 +376,10 @@ export default {
             label: 'author',
             value: this.project.author
           },
+          {
+            label: 'created',
+            value: (new Date(this.project.created)).toLocaleString()
+          }
         ];
 
         if (this.region.type === 'huc8') {
@@ -385,8 +398,8 @@ export default {
           return {
             id: d.id,
             n_barriers: d.barriers.length,
-            delta: d.results.delta.total,
-            effect: d.results.effect.total
+            delta: d.results.delta,
+            effect: d.results.effect
           };
         });
 

@@ -1,6 +1,16 @@
 module.exports = {
   VERSION: 1,
   DRAW_MAX_AREA_KM2: 2000,
+  REGION_TYPES: [
+    {
+      text: 'Watershed (HUC8)',
+      value: 'huc8'
+    },
+    {
+      text: 'Draw Polygon',
+      value: 'draw'
+    }
+  ],
   VARIABLES: [
     {
       id: 'effect',
