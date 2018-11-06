@@ -112,13 +112,82 @@
         </barriers-map>
       </div>
     </v-container>
+    <v-dialog
+      v-model="dialog"
+      width="800">
+      <v-card>
+        <v-toolbar color="primary" dark>
+          <h1>Welcome to the Critical Linkages Scenario Builder</h1>
+        </v-toolbar>
+
+        <v-card-text>
+          <v-container grid-list-xl>
+            <v-layout row wrap>
+              <v-flex xs12 md6 v-if="hasLocalProject">
+                <v-card>
+                  <v-toolbar dark color="blue">
+                    <h3>Resume Project</h3>
+                  </v-toolbar>
+                  <v-card-text>Pick up where you left off last time.</v-card-text>
+                  <v-card-actions>
+                    <v-btn flat @click="loadLocalProject">
+                      Resume Project <v-icon>arrow_forward</v-icon>
+                    </v-btn>
+                  </v-card-actions>
+                </v-card>
+              </v-flex>
+              <v-flex xs12 md6>
+                <v-card>
+                  <v-toolbar dark color="blue">
+                    <h3>Demo Project</h3>
+                  </v-toolbar>
+                  <v-card-text>Load the demo project (this will be removed)</v-card-text>
+                  <v-card-actions>
+                    <v-btn flat @click="loadDevProject">
+                      Load Demo <v-icon>arrow_forward</v-icon>
+                    </v-btn>
+                  </v-card-actions>
+                </v-card>
+              </v-flex>
+              <v-flex xs12 md6>
+                <v-card>
+                  <v-toolbar dark color="blue">
+                    <h3>Create New Project</h3>
+                  </v-toolbar>
+                  <v-card-text>Create a new project.</v-card-text>
+                  <v-card-actions>
+                    <v-btn flat to="/project/new">
+                      Create Project <v-icon>arrow_forward</v-icon>
+                    </v-btn>
+                  </v-card-actions>
+                </v-card>
+              </v-flex>
+              <v-flex xs12 md6>
+                <v-card>
+                  <v-toolbar dark color="blue">
+                    <h3>Load Existing Project</h3>
+                  </v-toolbar>
+                  <v-card-text>Load an existing project from a text file.</v-card-text>
+                  <v-card-actions>
+                    <v-btn flat to="/project/load">
+                      Load Project <v-icon>arrow_forward</v-icon>
+                    </v-btn>
+                  </v-card-actions>
+                </v-card>
+              </v-flex>
+            </v-layout>
+          </v-container>
+        </v-card-text>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
 <script>
 import { mapActions, mapGetters } from 'vuex';
 
-import { VERSION, VARIABLES } from '@/constants';
+import { VARIABLES, LOCALSTORAGE_PROJECT_KEY } from '@/constants';
+import { validateProject } from '@/validation';
 import * as errors from '@/errors';
 
 import BarriersMap from '@/components/BarriersMap.vue';
@@ -129,13 +198,13 @@ import MapLegend from '@/components/MapLegend.vue';
 import colorMixin from '@/mixins/color';
 import variableMixin from '@/mixins/variable';
 
-import data from '../dev/data/project.json';
-
 export default {
   name: 'builder',
   mixins: [variableMixin, colorMixin],
   data() {
     return {
+      hasLocalProject: false,
+      dialog: false,
       show: true,
       hideCards: false,
       hideVariable: false,
@@ -165,31 +234,34 @@ export default {
 
   },
   created() {
-    const localProject = localStorage.getItem('clsb');
-
-    const projectFile = localProject ? JSON.parse(localProject) : data;
-
-    if (localProject) {
-      console.log('loading localStorage project');
-    } else {
-      console.log('loading dev project');
-    }
-
-    this.loadProject(projectFile)
-      .catch((err) => {
-        if (err instanceof errors.VersionNotFoundError) {
-          console.log('Version not found in project file');
-        } else if (err instanceof errors.IncompatibleVersionError) {
-          console.log('Invalid project version');
-        } else if (err instanceof errors.InvalidProjectError) {
-          console.log('Invalid project file', err);
-        } else {
-          console.log('Failed to load project (unknown error)', err);
-        }
-        localStorage.removeItem('clsb');
-      });
-
     this.setVariableById('effect');
+
+    const localProjectString = localStorage.getItem(LOCALSTORAGE_PROJECT_KEY);
+
+    if (localProjectString) {
+      let project = null;
+      try {
+        project = JSON.parse(localProjectString);
+      } catch (e) {
+        console.log('localStorage project failed to parse, will be cleared');
+        console.error(e);
+        localStorage.removeItem(LOCALSTORAGE_PROJECT_KEY);
+        return;
+      }
+
+      validateProject(project)
+        .then(() => {
+          this.hasLocalProject = true;
+        })
+        .catch(() => {
+          localStorage.removeItem(LOCALSTORAGE_PROJECT_KEY);
+        });
+    }
+  },
+  mounted() {
+    if (!this.project) {
+      this.dialog = true;
+    }
   },
   watch: {
     variable() {
@@ -201,6 +273,34 @@ export default {
   },
   methods: {
     ...mapActions(['loadProject']),
+    loadDevProject() {
+      this.loadProject(require('../dev/data/project.json')); // eslint-disable-line
+      this.dialog = false;
+    },
+    loadLocalProject() {
+      const localProjectString = localStorage.getItem(LOCALSTORAGE_PROJECT_KEY);
+
+      if (localProjectString) {
+        let project = null;
+        try {
+          project = JSON.parse(localProjectString);
+        } catch (e) {
+          console.log('failed to load local project');
+          console.error(e);
+          localStorage.removeItem(LOCALSTORAGE_PROJECT_KEY);
+          return;
+        }
+
+        return this.loadProject(project)
+          .then(() => {
+            this.hasLocalProject = true;
+            this.dialog = false;
+          })
+          .catch(() => {
+            localStorage.removeItem(LOCALSTORAGE_PROJECT_KEY);
+          });
+      }
+    },
     setScales() {
       this.variableScale = this.getVariableScale(this.variable, this.barriers);
       this.colorScale = this.getColorScale(this.variable);
@@ -209,7 +309,7 @@ export default {
       this.scenario.barriers.push(barrier);
     },
     removeBarrier(barrier) {
-      const index = this.scenario.barriers.findIndex(d => d === barrier);
+      const index = this.scenario.barriers.findIndex(d => d.id === barrier.id);
       this.scenario.barriers.splice(index, 1);
     },
     setVariableById(id) {

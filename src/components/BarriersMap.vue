@@ -287,6 +287,9 @@ export default {
         this.drawHighlight();
       },
       deep: true
+    },
+    region() {
+      this.fitToRegion();
     }
   },
   methods: {

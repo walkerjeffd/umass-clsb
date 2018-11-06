@@ -3,7 +3,7 @@
     <v-card-text>
       <h3>
         <span v-if="scenario.status === 'new'">New</span>
-        <span v-else>Existing</span>
+        <span v-else>Edit</span>
         Scenario (ID: {{ scenario.id }})
       </h3>
       <div>
@@ -202,7 +202,7 @@
                 <v-tooltip bottom>
                   <v-icon
                     slot="activator"
-                    @click="deleteScenario(props.item)"
+                    @click.stop="deleteScenario(props.item)"
                     >delete
                   </v-icon>
                   <span>Delete Scenario</span>

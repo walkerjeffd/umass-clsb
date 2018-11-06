@@ -1,6 +1,7 @@
 module.exports = {
   VERSION: 1,
   DRAW_MAX_AREA_KM2: 2000,
+  LOCALSTORAGE_PROJECT_KEY: 'clsb-project',
   REGION_TYPES: [
     {
       text: 'Watershed (HUC8)',

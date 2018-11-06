@@ -1,11 +1,9 @@
 import Vue from 'vue';
 import Vuex from 'vuex';
 import axios from 'axios';
-import Joi from 'joi';
 
-import schema from '@/schema';
-import { VERSION } from '@/constants';
-import * as errors from '@/errors';
+import { VERSION, LOCALSTORAGE_PROJECT_KEY } from '@/constants';
+import { validateProject } from '@/validation';
 
 const graph = require('../lib/graph/');
 
@@ -87,33 +85,18 @@ const store = new Vuex.Store({
         return Promise.reject(new Error('Unable to read file or it is empty'));
       }
 
-      // validate minimal schema
-      let { error } = Joi.validate(payload, schema.minimal);
-
-      if (error) {
-        return Promise.reject(new errors.VersionNotFoundError('Project file is invalid or does not contain a valid version number'));
-      }
-
-      // check version
-      if (payload.version !== VERSION) {
-        return Promise.reject(new errors.IncompatibleVersionError('Project file is not compatible with this version of the application'));
-      }
-
-      // validate full schema
-      ({ error } = Joi.validate(payload, schema.full));
-
-      if (error) {
-        return Promise.reject(new errors.InvalidProjectError('Invalid project file'));
-      }
-
-      commit('SET_PROJECT', payload.project);
-      commit('SET_BARRIERS', payload.barriers);
-      commit('SET_REGION', payload.region);
-      commit('SET_SCENARIOS', payload.scenarios);
-      return dispatch('newScenario');
+      validateProject(payload)
+        .then(() => {
+          commit('SET_PROJECT', payload.project);
+          commit('SET_BARRIERS', payload.barriers);
+          commit('SET_REGION', payload.region);
+          commit('SET_SCENARIOS', payload.scenarios);
+          return dispatch('newScenario');
+        });
     },
-    clearScenarios({ commit }) {
+    clearScenarios({ commit, dispatch }) {
       commit('SET_SCENARIOS', []);
+      return dispatch('newScenario');
     },
     setRegion({ commit }, region) {
       return axios.post('/barriers/geojson', {
@@ -127,7 +110,10 @@ const store = new Vuex.Store({
     setBarriers({ commit }, barriers) {
       commit('SET_BARRIERS', barriers);
     },
-    deleteScenario({ commit }, scenario) {
+    deleteScenario({ commit, state, dispatch }, scenario) {
+      if (state.scenario.id === scenario.id) {
+        dispatch('newScenario');
+      }
       commit('DELETE_SCENARIO', scenario);
     },
     newScenario({ commit, state }, lastId) {
@@ -188,7 +174,7 @@ store.subscribe((mutation, state) => {
     return;
   }
 
-  if (exceedsLocalStorage) {
+  if (exceedsLocalStorage || !state.project) {
     return;
   }
 
@@ -202,7 +188,7 @@ store.subscribe((mutation, state) => {
   };
 
   try {
-    localStorage.setItem('clsb', JSON.stringify(data));
+    localStorage.setItem(LOCALSTORAGE_PROJECT_KEY, JSON.stringify(data));
   } catch (e) {
     exceedsLocalStorage = true;
     alert('Warning! The current project cannot be auto-saved in your browser because it exceeds the maximum allowable size.\n\nYou may continue to build new scenarios. However, you must export the project using the Export/Save button on the Project tab or the Download button on the Scenarios tab to avoid losing your work.');

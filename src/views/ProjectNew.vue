@@ -288,8 +288,7 @@ export default {
         name: this.info.name,
         description: this.info.description,
         author: this.info.author,
-        created: (new Date()).valueOf(),
-        version: VERSION
+        created: (new Date()).valueOf()
       };
       const region = {
         type: this.region.type,
@@ -298,6 +297,7 @@ export default {
       const barriers = this.barriers;
 
       const payload = {
+        version: VERSION,
         project,
         region,
         barriers

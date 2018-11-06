@@ -37,8 +37,8 @@ const full = Joi.object({
   version: Joi.number().integer().min(1),
   project: Joi.object({
     name: Joi.string().required(),
-    description: Joi.string(),
-    author: Joi.string(),
+    description: Joi.string().empty(''),
+    author: Joi.string().empty(''),
     created: Joi.number().integer()
   }),
   region: Joi.object({
