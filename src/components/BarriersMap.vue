@@ -1,5 +1,12 @@
 <template>
-  <div class="barriers-map"></div>
+  <div class="barriers-map">
+    <v-snackbar
+      top
+      v-model="showZoomWarning">
+      Warning! Satellite and street map basemaps are not available at this zoom level.
+      <v-btn flat color="primary" @click.native="showZoomWarning = false">Close</v-btn>
+    </v-snackbar>
+  </div>
 </template>
 
 <script>
@@ -71,6 +78,7 @@ export default {
   props: ['selected', 'barriers', 'region', 'variable', 'colorScale', 'variableScale', 'highlight'],
   data() {
     return {
+      showZoomWarning: false,
       map: null,
       svg: null,
       disableClick: false,
@@ -241,6 +249,11 @@ export default {
     });
     this.map.on('zoomend', () => {
       this.zoomLevel = this.map.getZoom();
+      if (this.zoomLevel > 18) {
+        this.showZoomWarning = true;
+      } else {
+        this.showZoomWarning = false;
+      }
       this.render();
     });
     this.map.on('draw:created', ({ layer }) => {
