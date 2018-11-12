@@ -225,14 +225,14 @@
           @click="downloadScenariosCsv"
           small
           :disabled="scenarios.length === 0 || nScenariosRemaining > 0">
-          <v-icon>save_alt</v-icon> Download Scenarios
+          <v-icon>save_alt</v-icon> Download Scenarios (CSV)
         </v-btn>
         <v-spacer></v-spacer>
         <v-btn
           @click="clearScenarios"
           small
           :disabled="scenarios.length === 0 || nScenariosRemaining > 0">
-          <v-icon>delete</v-icon> Delete All
+          <v-icon>delete</v-icon> Delete All Scenarios
         </v-btn>
       </v-layout>
     </v-card-actions>
