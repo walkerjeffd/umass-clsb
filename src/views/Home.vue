@@ -18,7 +18,7 @@
     <!-- tab box -->
     <v-container fluid fill-height grid-list-xs class="pa-2">
       <v-layout row>
-        <v-flex xs12 md6 lg4>
+        <v-flex xs12 md6 lg5 xl4>
           <v-card>
             <v-tabs
               v-model="active"
@@ -36,7 +36,7 @@
               </v-tab>
               <v-tab
                 ripple>
-                <v-icon small class="mr-1">map</v-icon> Map Settings
+                <v-icon small class="mr-1">settings</v-icon> Map Settings
               </v-tab>
               <v-spacer></v-spacer>
               <v-btn small outline dark @click="hideCards = !hideCards" class="mt-2 hide">
@@ -106,7 +106,7 @@
           :variable="variable"
           :color-scale="colorScale"
           :variable-scale="variableScale"
-          :show-surveyed="showSurveyed"
+          :highlight="highlight"
           @add-barrier="addBarrier"
           @remove-barrier="removeBarrier">
         </barriers-map>
