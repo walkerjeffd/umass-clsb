@@ -60,6 +60,9 @@
                       label="Select Color Variable"
                       return-object>
                     </v-select>
+                    <p class="caption" color="gray">
+                      {{ variable.description }}
+                    </p>
                     <map-legend
                       :id="'a'"
                       :height="20"
@@ -71,7 +74,7 @@
                     </map-legend>
                     <v-divider></v-divider>
                     <v-layout row wrap>
-                      <div class="subheading grey--text text--darken-3 mt-3 mb-0">Highlight Barrier Types</div>
+                      <div class="subheading grey--text text--darken-3 mt-3 mb-0">Highlight Barriers by Type</div>
                       <v-flex xs12 class="ml-3">
                         <v-switch
                           v-model="highlight.surveyed"
@@ -144,7 +147,7 @@
                 </div>
                 <div v-if="readMore">
                   <p>
-                    Information about road-stream crossings includes aquatic passability scores, based either on NAACC assessments (surveyed crossing) or a model created for the Critical Linkages assessment (modeled crossings). Aquatic passability scores for dams are based on dam height.
+                    Information about road-stream crossings includes aquatic passability scores, based either on NAACC assessments (surveyed crossing) or a model created for the Critical Linkages assessment (modeled crossings). Aquatic passability scores for dams are assumed to be zero (impassable).
                   </p>
                   <p>
                     When scenarios are run, the results are computed and presented in arbitrary units (useful only for comparing scenarios) and expressed as Connectivity Gain and Restoration Potential. Connectivity Gain is based on an aquatic connectedness metric used for the Critical Linkages assessment using a resistant kernel approach for evaluating connectivity. Connectivity Gain is the change in aquatic connectedness resulting from all the changes (i.e. crossing replacements and/or dam removals) in your scenario.

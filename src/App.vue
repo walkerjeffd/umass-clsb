@@ -32,7 +32,7 @@
               This tool uses road-stream crossing data from the North Atlantic Aquatic Connectivity Collaborative (NAACC) and the UMass Critical Linkages assessment to allow users to create scenarios that involve combinations of crossing replacements and/or dam removals, and evaluate them for gains in aquatic connectivity and ecological restoration potential.
             </p>
             <p>
-              Information about road-stream crossings includes aquatic passability scores, based either on NAACC assessments (surveyed crossing) or a model created for the Critical Linkages assessment (modeled crossings). Aquatic passability scores for dams are based on dam height.
+              Information about road-stream crossings includes aquatic passability scores, based either on NAACC assessments (surveyed crossing) or a model created for the Critical Linkages assessment (modeled crossings). Aquatic passability scores for dams are assumed to be zero (impassable).
             </p>
             <p>
               When scenarios are run, the results are computed and presented in arbitrary units (useful only for comparing scenarios) and expressed as Connectivity Gain and Restoration Potential. Connectivity Gain is based on an aquatic connectedness metric used for the Critical Linkages assessment using a resistant kernel approach for evaluating connectivity. Connectivity Gain is the change in aquatic connectedness resulting from all the changes (i.e. crossing replacements and/or dam removals) in your scenario.

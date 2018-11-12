@@ -16,6 +16,7 @@ module.exports = {
     {
       id: 'effect',
       label: 'Restoration Potential',
+      description: 'Incoporates both the change in aquatic connectivity (Connectivity Gain) and habitat quality (as expressed by an Index of Ecological Integrity).',
       formats: {
         text: ',.0f',
         axis: ',.1s'
@@ -31,6 +32,7 @@ module.exports = {
     {
       id: 'delta',
       label: 'Connectivity Gain',
+      description: 'Change in aquatic connectedness resulting from crossing replacement or dam removal based on the Critical Linkages\' resistant kernel approach.',
       formats: {
         text: ',.1f',
         axis: ',.1s'
@@ -46,6 +48,7 @@ module.exports = {
     {
       id: 'aquatic',
       label: 'Aquatic Passability',
+      description: 'Degree to which crossing is passable based either on NAACC assessments (surveyed crossings) or the Critical Linkages assessment model (unsurveyed crossings). Dams are assumed to have a value of zero (impassable).',
       formats: {
         text: ',.2f',
         axis: ',.1s'
