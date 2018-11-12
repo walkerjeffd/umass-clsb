@@ -12,10 +12,10 @@
       </div>
       <div v-else-if="type === 'draw'">
         <p v-if="draw.selected.feature">
-          Polygon has been drawn. It has an area of {{ draw.selected.feature.properties.areaKm2 | number }} sq. km.
+          The drawn region has an area of {{ draw.selected.feature.properties.areaKm2 | number }} sq. km.
         </p>
         <p v-else>
-          Use the drawing tools in the upper right corner of the map to define your region of interest, then click Next.
+          Use the drawing tools (upper right corner of map) to define your region, then click Next. The custom region must be within the 13 states shown in gray and cannot be larger than {{ draw.maxArea | number }} sq. km.
         </p>
       </div>
     </div>
@@ -29,7 +29,9 @@ import 'leaflet-draw';
 import 'leaflet-draw/dist/leaflet.draw.css';
 import axios from 'axios';
 import geoJsonArea from '@mapbox/geojson-area';
+import * as d3 from 'd3';
 
+import { DRAW_MAX_AREA_KM2 } from '@/constants';
 import { number } from '@/filters';
 
 require('leaflet-bing-layer');
@@ -47,7 +49,16 @@ export default {
           layer: new L.FeatureGroup(),
           feature: null
         },
-        control: null
+        control: null,
+        states: {
+          layer: L.geoJson([], {
+            style: () => ({
+              color: '#888888',
+              fill: null
+            })
+          })
+        },
+        maxArea: DRAW_MAX_AREA_KM2
       },
       huc8: {
         features: {
@@ -78,8 +89,8 @@ export default {
     const el = this.$el.getElementsByClassName('region-map')[0];
 
     this.map = L.map(el, {
-      center: [42, -72],
-      zoom: 7,
+      center: [42, -72.5],
+      zoom: 5,
       maxZoom: 18,
       minZoom: 5,
     });
@@ -134,9 +145,20 @@ export default {
       } else if (this.type === 'huc8') {
         this.selectHuc8(this.feature);
       }
+      setTimeout(() => this.fitToFeature(this.feature), 1000);
     }
   },
   methods: {
+    fitToFeature(feature) {
+      if (!feature) return;
+      const bounds = d3.geoBounds(feature);
+      const topLeft = bounds[0];
+      const bottomRight = bounds[1];
+      this.map.fitBounds([
+        [topLeft[1], topLeft[0]],
+        [bottomRight[1], bottomRight[0]]
+      ]);
+    },
     loadRegion(feature) {
       if (feature) {
         this[this.type].selected.feature = feature;
@@ -178,22 +200,34 @@ export default {
     },
     setType(type) {
       this.clear();
+      let promise;
 
       if (type === 'draw') {
-        this.map.addControl(this.draw.control);
-        this.map.addLayer(this.draw.selected.layer);
+        if (this.draw.states.layer.getLayers().length === 0) {
+          promise = axios.get('/static/states.json')
+            .then((response) => {
+              this.draw.states.layer.addData(response.data.features);
+            });
+        } else {
+          promise = Promise.resolve();
+        }
+        promise.then(() => {
+          this.map.addControl(this.draw.control);
+          this.map.addLayer(this.draw.states.layer);
+          this.map.addLayer(this.draw.selected.layer);
+        });
       } else {
         this.map.removeControl(this.draw.control);
+        this.map.removeLayer(this.draw.states.layer);
         this.map.removeLayer(this.draw.selected.layer);
       }
 
       if (type === 'huc8') {
-        let promise;
-        if (!this.huc8.features.data) {
+        if (this.huc8.features.layer.getLayers().length === 0) {
           promise = axios.get('/static/huc8.json')
             .then((response) => {
-              this.huc8.features.data = response.data.features;
-              this.huc8.features.layer.addData(this.huc8.features.data);
+              // this.huc8.features.data = response.data.features;
+              this.huc8.features.layer.addData(response.data.features);
             });
         } else {
           promise = Promise.resolve();

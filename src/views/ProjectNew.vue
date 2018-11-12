@@ -134,10 +134,13 @@
 <script>
 import { mapActions } from 'vuex';
 import axios from 'axios';
+import intersect from '@turf/intersect';
 
 import RegionMap from '@/components/RegionMap.vue';
 import { DRAW_MAX_AREA_KM2, VERSION, REGION_TYPES } from '@/constants';
 import { number } from '@/filters';
+
+const boundaryGeoJson = require('@/data/boundary.json');
 
 export default {
   name: 'project-new',
@@ -266,6 +269,13 @@ export default {
         const { areaKm2 } = this.region.feature.properties;
         if (areaKm2 > DRAW_MAX_AREA_KM2) {
           this.region.error = `The selected region has an area of ${number(areaKm2)} sq. km, which exceeds the maximum allowed area (${number(DRAW_MAX_AREA_KM2)} sq. km). Please draw a smaller area.`;
+          return false;
+        }
+
+        const intersection = intersect(this.region.feature.geometry, boundaryGeoJson.features[0].geometry);
+
+        if (!intersection) {
+          this.region.error = 'The selected region is outside the project boundaries. Draw a new area within the 13 states shown in gray.';
           return false;
         }
       }
