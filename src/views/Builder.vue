@@ -261,6 +261,8 @@ export default {
   mounted() {
     if (!this.project) {
       this.dialog = true;
+    } else {
+      window.barriers = this.barriers;
     }
   },
   watch: {
@@ -274,7 +276,7 @@ export default {
   methods: {
     ...mapActions(['loadProject']),
     loadDevProject() {
-      this.loadProject(require('../dev/data/project.json')); // eslint-disable-line
+      this.loadProject(require('@/data/project.json')); // eslint-disable-line
       this.dialog = false;
     },
     loadLocalProject() {

@@ -16,7 +16,7 @@ const barrierSchema = Joi.object({
   type: Joi.string().allow(['culvert', 'dam']),
   lat: Joi.number(),
   lon: Joi.number(),
-  node_id: Joi.string()
+  node_id: Joi.string().allow(null)
 });
 
 const scenarioSchema = Joi.object({
