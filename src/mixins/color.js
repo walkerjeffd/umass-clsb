@@ -16,7 +16,6 @@ const mixin = {
       }
 
       if (variable.scale.reverse) {
-        console.log('reverse');
         scale.domain(scale.domain().reverse());
       }
 
