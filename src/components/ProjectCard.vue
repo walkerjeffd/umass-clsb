@@ -36,7 +36,10 @@
         </v-btn>
         <v-spacer></v-spacer>
         <v-btn to="/project/new" small>
-          <v-icon>control_point</v-icon> New Project
+          <v-icon>add</v-icon> New Project
+        </v-btn>
+        <v-btn to="/project/load" small>
+          <v-icon>publish</v-icon> Load Project
         </v-btn>
       </v-layout>
     </v-card-actions>
