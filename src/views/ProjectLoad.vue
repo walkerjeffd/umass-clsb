@@ -84,12 +84,12 @@ export default {
     };
   },
   methods: {
-    ...mapActions(['loadProjectFile']),
+    ...mapActions(['loadProject']),
     nextStep() {
       if (this.step === 1) {
         this.status = 'loading';
 
-        return setTimeout(() => this.loadFile(this.file)
+        return this.loadFile(this.file)
           .then(() => {
             this.status = 'loaded';
             this.step += 1;
@@ -98,7 +98,7 @@ export default {
             this.error = err;
             this.status = 'error';
             this.step += 1;
-          }), 2000);
+          });
       }
       return null;
     },
@@ -126,10 +126,8 @@ export default {
             return reject(err);
           }
 
-          return this.loadProjectFile(json)
-            .then(() => {
-              return resolve(json);
-            })
+          return this.loadProject(json)
+            .then(() => resolve(json))
             .catch((err) => {
               console.error(err);
               return reject(err);

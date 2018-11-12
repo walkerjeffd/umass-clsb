@@ -348,13 +348,12 @@ export default {
     },
     fitToRegion() {
       if (!this.region) return;
-      const bounds = d3.geoBounds(this.region.feature);
-      const topLeft = bounds[0];
-      const bottomRight = bounds[1];
-      this.map.fitBounds([
-        [topLeft[1], topLeft[0]],
-        [bottomRight[1], bottomRight[0]]
-      ]);
+
+      const latLngs = this.region.feature.geometry.coordinates[0]
+        .map(d => [d[1], d[0]]);
+      const bounds = L.latLngBounds(latLngs);
+
+      this.map.fitBounds(bounds);
       this.render();
     },
     drawBarriers() {
