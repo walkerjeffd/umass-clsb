@@ -113,6 +113,7 @@
       </div>
     </v-container>
     <v-dialog
+      persistent
       v-model="dialog"
       width="800">
       <v-card>
