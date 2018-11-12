@@ -16,7 +16,7 @@
     </v-layout>
 
     <!-- tab box -->
-    <v-container fluid fill-height grid-list-xs class="pa-2">
+    <v-container fluid fill-height grid-list-xs class="pa-2" v-if="$vuetify.breakpoint.mdAndUp || project">
       <v-layout row>
         <v-flex xs12 md6 lg5 xl4>
           <v-card>
@@ -97,7 +97,7 @@
     </v-container>
 
     <!-- map on xs-sm devices -->
-    <v-container fluid fill-height grid-list-xs class="pa-2" v-if="$vuetify.breakpoint.smAndDown">
+    <v-container fluid fill-height grid-list-xs class="pa-2" v-if="$vuetify.breakpoint.smAndDown && project">
       <div style="width:100%;height:400px">
         <barriers-map
           :region="region"
@@ -118,66 +118,123 @@
       :fullscreen="$vuetify.breakpoint.mdAndDown"
       persistent
       scrollable
-      v-model="dialog">
+      v-model="dialog"
+      max-width="1000">
       <v-card>
-        <v-toolbar color="primary" dark>
-          <h1>Welcome to the Aquatic Connectivity Scenario Analysis Tool</h1>
+        <v-toolbar color="white">
+          <h1 class="headline">Welcome to the Aquatic Connectivity Scenario Analysis Tool</h1>
         </v-toolbar>
 
         <v-card-text>
+          <v-container class="pb-1">
+            <v-layout row wrap>
+              <v-flex xs12>
+                <p class="body-2 mb-2">
+                  This tool uses road-stream crossing data from the North Atlantic Aquatic Connectivity Collaborative (NAACC) and the UMass Critical Linkages assessment to allow users to create scenarios that involve combinations of crossing replacements and/or dam removals, and evaluate them for gains in aquatic connectivity and ecological restoration potential.
+                </p>
+                <div class="text-xs-center">
+                  <v-btn
+                    v-if="!readMore"
+                    @click="readMore = true"
+                    small
+                    flat
+                    class="ma-0 mb-1">
+                    <v-icon>expand_more</v-icon> Read More
+                  </v-btn>
+                </div>
+                <div v-if="readMore">
+                  <p>
+                    Information about road-stream crossings includes aquatic passability scores, based either on NAACC assessments (surveyed crossing) or a model created for the Critical Linkages assessment (modeled crossings). Aquatic passability scores for dams are based on dam height.
+                  </p>
+                  <p>
+                    When scenarios are run, the results are computed and presented in arbitrary units (useful only for comparing scenarios) and expressed as Connectivity Gain and Restoration Potential. Connectivity Gain is based on an aquatic connectedness metric used for the Critical Linkages assessment using a resistant kernel approach for evaluating connectivity. Connectivity Gain is the change in aquatic connectedness resulting from all the changes (i.e. crossing replacements and/or dam removals) in your scenario.
+                  </p>
+                  <p>
+                    Restoration Potential takes into account both the change in aquatic connectivity (Connectivity Gain) and habitat quality (as expressed by an Index of Ecological Integrity).
+                  </p>
+                  <p>
+                    For more information on the NAACC visit: <a href="http://streamcontinuity.org">streamcontinuity.org</a>.
+                  </p>
+                  <p>
+                    Follow these links for more information about:
+                  </p>
+                  <ul>
+                    <li>
+                      <a href="https://scholarworks.umass.edu/data/55/">Critical Linkages</a>
+                    </li>
+                    <li>
+                      <a href="https://scholarworks.umass.edu/designing_sustainable_landscapes_techdocs/10/">Aquatic Connectedness</a>
+                    </li>
+                    <li>
+                      <a href="https://scholarworks.umass.edu/designing_sustainable_landscapes_techdocs/8/">Index of Ecological Integrity</a>
+                    </li>
+                    <div class="text-xs-center">
+                      <v-btn
+                        @click="readMore = false"
+                        small
+                        flat>
+                        <v-icon>expand_less</v-icon> Show Less
+                      </v-btn>
+                    </div>
+                  </ul>
+                </div>
+              </v-flex>
+            </v-layout>
+          </v-container>
+          <v-divider></v-divider>
           <v-container grid-list-xl>
             <v-layout row wrap>
+              <v-flex xs12 md6>
+                <v-hover>
+                  <v-card
+                    slot-scope="{ hover }"
+                    :class="`elevation-${hover ? 12 : 2}`"
+                    to="/project/new">
+                    <v-toolbar dark color="blue">
+                      <h3>Create New Project</h3>
+                    </v-toolbar>
+                    <v-card-text>Create a new project.</v-card-text>
+                  </v-card>
+                </v-hover>
+              </v-flex>
+              <v-flex xs12 md6>
+                <v-hover>
+                  <v-card
+                    slot-scope="{ hover }"
+                    :class="`elevation-${hover ? 12 : 2}`"
+                    to="/project/load">
+                    <v-toolbar dark color="blue">
+                      <h3>Load Existing Project</h3>
+                    </v-toolbar>
+                    <v-card-text>Load an existing project from a previously exported text file.</v-card-text>
+                  </v-card>
+                </v-hover>
+              </v-flex>
               <v-flex xs12 md6 v-if="hasLocalProject">
-                <v-card>
-                  <v-toolbar dark color="blue">
-                    <h3>Resume Project</h3>
-                  </v-toolbar>
-                  <v-card-text>Previous project has been found. Resume this project to pick up where you left off.</v-card-text>
-                  <v-card-actions>
-                    <v-btn flat @click="loadLocalProject">
-                      Resume Project <v-icon>arrow_forward</v-icon>
-                    </v-btn>
-                  </v-card-actions>
-                </v-card>
+                <v-hover>
+                  <v-card
+                    slot-scope="{ hover }"
+                    :class="`elevation-${hover ? 12 : 2}`"
+                    @click.native="loadLocalProject" style="cursor:pointer">
+                    <v-toolbar dark color="blue">
+                      <h3>Resume Project</h3>
+                    </v-toolbar>
+                    <v-card-text>Pick up where you left off on your last project.</v-card-text>
+                  </v-card>
+                </v-hover>
               </v-flex>
               <v-flex xs12 md6>
-                <v-card>
-                  <v-toolbar dark color="blue">
-                    <h3>Demo Project</h3>
-                  </v-toolbar>
-                  <v-card-text>Load the demo project.</v-card-text>
-                  <v-card-actions>
-                    <v-btn flat @click="loadDevProject">
-                      Load Demo <v-icon>arrow_forward</v-icon>
-                    </v-btn>
-                  </v-card-actions>
-                </v-card>
-              </v-flex>
-              <v-flex xs12 md6>
-                <v-card>
-                  <v-toolbar dark color="blue">
-                    <h3>Create New Project</h3>
-                  </v-toolbar>
-                  <v-card-text>Create a new project.</v-card-text>
-                  <v-card-actions>
-                    <v-btn flat to="/project/new">
-                      Create Project <v-icon>arrow_forward</v-icon>
-                    </v-btn>
-                  </v-card-actions>
-                </v-card>
-              </v-flex>
-              <v-flex xs12 md6>
-                <v-card>
-                  <v-toolbar dark color="blue">
-                    <h3>Load Existing Project</h3>
-                  </v-toolbar>
-                  <v-card-text>Load an existing project from a text file, which was previously exported.</v-card-text>
-                  <v-card-actions>
-                    <v-btn flat to="/project/load">
-                      Load Project <v-icon>arrow_forward</v-icon>
-                    </v-btn>
-                  </v-card-actions>
-                </v-card>
+                <v-hover>
+                  <v-card
+                    slot-scope="{ hover }"
+                    :class="`elevation-${hover ? 12 : 2}`"
+                    @click.native="loadDemoProject" style="cursor:pointer">
+                    <v-toolbar dark color="blue">
+                      <h3>Demo Project</h3>
+                    </v-toolbar>
+                    <v-card-text>Load the demo project.</v-card-text>
+                  </v-card>
+                </v-hover>
               </v-flex>
             </v-layout>
           </v-container>
@@ -207,6 +264,7 @@ export default {
   mixins: [variableMixin, colorMixin],
   data() {
     return {
+      readMore: false,
       hasLocalProject: false,
       dialog: false,
       show: true,
@@ -279,7 +337,7 @@ export default {
   },
   methods: {
     ...mapActions(['loadProject']),
-    loadDevProject() {
+    loadDemoProject() {
       this.loadProject(require('@/data/project.json')); // eslint-disable-line
       this.dialog = false;
     },
