@@ -29,7 +29,6 @@
 
           <v-card-text>
             <p>Text about the Aquatic Connectivity Scenario Analysis Tool.</p>
-            <p>TODO: Scott</p>
           </v-card-text>
 
           <v-divider></v-divider>

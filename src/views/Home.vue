@@ -112,10 +112,13 @@
         </barriers-map>
       </div>
     </v-container>
+
+    <!-- welcome dialog -->
     <v-dialog
+      :fullscreen="$vuetify.breakpoint.mdAndDown"
       persistent
-      v-model="dialog"
-      width="800">
+      scrollable
+      v-model="dialog">
       <v-card>
         <v-toolbar color="primary" dark>
           <h1>Welcome to the Aquatic Connectivity Scenario Analysis Tool</h1>
@@ -129,7 +132,7 @@
                   <v-toolbar dark color="blue">
                     <h3>Resume Project</h3>
                   </v-toolbar>
-                  <v-card-text>Pick up where you left off last time.</v-card-text>
+                  <v-card-text>Previous project has been found. Resume this project to pick up where you left off.</v-card-text>
                   <v-card-actions>
                     <v-btn flat @click="loadLocalProject">
                       Resume Project <v-icon>arrow_forward</v-icon>
@@ -142,7 +145,7 @@
                   <v-toolbar dark color="blue">
                     <h3>Demo Project</h3>
                   </v-toolbar>
-                  <v-card-text>Load the demo project (this will be removed)</v-card-text>
+                  <v-card-text>Load the demo project.</v-card-text>
                   <v-card-actions>
                     <v-btn flat @click="loadDevProject">
                       Load Demo <v-icon>arrow_forward</v-icon>
@@ -168,7 +171,7 @@
                   <v-toolbar dark color="blue">
                     <h3>Load Existing Project</h3>
                   </v-toolbar>
-                  <v-card-text>Load an existing project from a text file.</v-card-text>
+                  <v-card-text>Load an existing project from a text file, which was previously exported.</v-card-text>
                   <v-card-actions>
                     <v-btn flat to="/project/load">
                       Load Project <v-icon>arrow_forward</v-icon>

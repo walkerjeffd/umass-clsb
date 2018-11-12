@@ -1,5 +1,5 @@
 <template>
-  <v-card>
+  <v-card :max-height="maxHeight" style="overflow-y:auto;">
     <v-card-text>
       <h3>
         <span v-if="scenario.status === 'new'">New</span>
@@ -298,6 +298,9 @@ export default {
       const n = this.scenario.barriers.length;
       const k = this.batch.choose;
       return Math.round(generatorics.C(n, k));
+    },
+    maxHeight() {
+      return this.$vuetify.breakpoint.mdAndUp ? this.$vuetify.breakpoint.height - 160 : Infinity;
     }
   },
   methods: {
