@@ -292,6 +292,12 @@ export default {
     variable() {
       this.render();
     },
+    variableScale() {
+      this.render();
+    },
+    colorScale() {
+      this.render();
+    },
     barriers() {
       this.render();
     },
@@ -349,6 +355,7 @@ export default {
         [topLeft[1], topLeft[0]],
         [bottomRight[1], bottomRight[0]]
       ]);
+      this.render();
     },
     drawBarriers() {
       const r = this.pointRadius;
