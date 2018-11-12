@@ -20,8 +20,7 @@
                     <strong>File Selected</strong>: {{ file.name }}
                   </div>
                   <div v-else>
-                    Click the button above and select the project file previously exporter from the
-                    scenario builder interface. Then click Next to load the project.
+                    Click the button above and select the project file, which was previously exported. Then click Next to load the project.
                   </div>
                 </div>
               </div>
@@ -39,7 +38,7 @@
             <v-stepper-content step="2">
               <div class="mb-2">
                 <v-alert :value="status === 'loaded'" type="success" outline>
-                  File successfully loaded. Click Next to proceed to the Scenario Builder.
+                  File successfully loaded. Click Next to proceed.
                 </v-alert>
                 <v-alert :value="status === 'error'" type="error" outline>
                   Failed to load file <br/>

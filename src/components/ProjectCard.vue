@@ -112,7 +112,7 @@ export default {
         barriers: this.barriers,
         scenarios: this.scenarios
       };
-      const name = this.project.name || 'critical-linkages-scenario-builder';
+      const name = this.project.name || 'aquatic-connectivity-scenario-project';
       const filename = `${slugify(name, { lower: true })}.json`;
 
       download(JSON.stringify(data, null, 2), filename, 'application/json');
