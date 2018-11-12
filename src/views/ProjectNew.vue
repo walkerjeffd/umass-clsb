@@ -317,7 +317,7 @@ export default {
       return this.createProject(payload)
         .then(() => {
           this.creatingProject = false;
-          this.$router.push('/builder');
+          this.$router.push('/');
         })
         .catch((err) => {
           this.creatingProject = false;

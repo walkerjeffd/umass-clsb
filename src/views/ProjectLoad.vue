@@ -52,7 +52,7 @@
                 <v-spacer></v-spacer>
                 <v-btn
                   color="primary"
-                  to="/builder">
+                  to="/">
                   Next <v-icon>chevron_right</v-icon>
                 </v-btn>
               </v-layout>

@@ -32,15 +32,16 @@
               This tool uses road-stream crossing data from the North Atlantic Aquatic Connectivity Collaborative (NAACC) and the UMass Critical Linkages assessment to allow users to create scenarios that involve combinations of crossing replacements and/or dam removals, and evaluate them for gains in aquatic connectivity and ecological restoration potential.
             </p>
             <p>
-              Information about road-stream crossings includes aquatic passability scores, based either on NAACC assessments (surveyed crossing) or a model created for the Critical Linkages assessment (modeled crossings). Aquatic passability scores for dams are assumed to be zero (impassable).
+              Information about road-stream crossings includes <strong>Aquatic Passability</strong> scores, based either on NAACC assessments (surveyed crossing) or a model created for the Critical Linkages assessment (modeled crossings). Aquatic passability scores for dams are assumed to be zero (impassable).
             </p>
             <p>
-              When scenarios are run, the results are computed and presented in arbitrary units (useful only for comparing scenarios) and expressed as Connectivity Gain and Restoration Potential. Connectivity Gain is based on an aquatic connectedness metric used for the Critical Linkages assessment using a resistant kernel approach for evaluating connectivity. Connectivity Gain is the change in aquatic connectedness resulting from all the changes (i.e. crossing replacements and/or dam removals) in your scenario.
+              When scenarios are run, the results are computed and presented in arbitrary units (useful only for comparing scenarios) and expressed as Connectivity Gain and Restoration Potential.
             </p>
-            <p>
-              Restoration Potential takes into account both the change in aquatic connectivity (Connectivity Gain) and habitat quality (as expressed by an Index of Ecological Integrity).
-            </p>
-            <p>
+            <ul>
+              <li><strong>Connectivity Gain</strong> is based on an aquatic connectedness metric used for the Critical Linkages assessment using a resistant kernel approach for evaluating connectivity. Connectivity Gain is the change in aquatic connectedness resulting from all the changes (i.e. crossing replacements and/or dam removals) in your scenario.</li>
+              <li><strong>Restoration Potential</strong> takes into account both the change in aquatic connectivity (Connectivity Gain) and habitat quality (as expressed by an Index of Ecological Integrity).</li>
+            </ul>
+            <p class="mt-2">
               For more information on the NAACC visit: <a href="http://streamcontinuity.org">streamcontinuity.org</a>.
             </p>
             <p>

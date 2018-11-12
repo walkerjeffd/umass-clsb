@@ -31,17 +31,17 @@
     <v-divider></v-divider>
     <v-card-actions class="pa-3">
       <v-layout row wrap>
-        <v-flex xs12 lg8>
+        <v-flex xs12 lg4>
+          <v-btn @click="dialog.export = true" small>
+            <v-icon>file_download</v-icon> Save/Export Project
+          </v-btn>
+        </v-flex>
+        <v-flex xs12 lg8 text-lg-right>
           <v-btn to="/project/new" small>
             <v-icon>add</v-icon> New Project
           </v-btn>
           <v-btn to="/project/load" small>
             <v-icon>publish</v-icon> Load Project
-          </v-btn>
-        </v-flex>
-        <v-flex xs12 lg4 text-lg-right>
-          <v-btn @click="dialog.export = true" small>
-            <v-icon>file_download</v-icon> Save/Export Project
           </v-btn>
         </v-flex>
       </v-layout>
