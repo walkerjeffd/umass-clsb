@@ -28,7 +28,7 @@
           </v-card-title>
 
           <v-card-text>
-            <p>Text about the Critical Linkages Scenario Builder.</p>
+            <p>Text about the Aquatic Connectivity Scenario Analysis Tool.</p>
             <p>TODO: Scott</p>
           </v-card-text>
 
@@ -62,7 +62,7 @@ export default {
       dialog: {
         about: false
       },
-      title: 'Critical Linkages Scenario Builder'
+      title: 'Aquatic Connectivity Scenario Analysis Tool'
     };
   }
 };

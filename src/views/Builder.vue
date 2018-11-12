@@ -71,12 +71,12 @@
                     </map-legend>
                     <v-divider></v-divider>
                     <v-layout row wrap>
-                      <div class="subheading grey--text text--darken-3 mt-3 mb-0">Barrier Highlights</div>
+                      <div class="subheading grey--text text--darken-3 mt-3 mb-0">Highlight Barrier Types</div>
                       <v-flex xs12 class="ml-3">
                         <v-switch
                           v-model="highlight.surveyed"
                           color="#FF8F00"
-                          label="Surveyed Culverts"
+                          label="Surveyed Crossings"
                           hide-details>
                         </v-switch>
                         <v-switch
@@ -117,7 +117,7 @@
       width="800">
       <v-card>
         <v-toolbar color="primary" dark>
-          <h1>Welcome to the Critical Linkages Scenario Builder</h1>
+          <h1>Welcome to the Aquatic Connectivity Scenario Analysis Tool</h1>
         </v-toolbar>
 
         <v-card-text>

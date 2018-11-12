@@ -2,7 +2,7 @@
   <v-container>
     <v-layout align-center justify-center>
       <v-flex xs12 lg8 xl6>
-        <h1>Welcome to the Critical Linkages Scenario Builder!</h1>
+        <h1>Welcome to the Aquatic Connectivity Scenario Analysis Tool!</h1>
         <v-layout align-center justify-center>
           <v-container grid-list-xl>
             <v-layout column>
