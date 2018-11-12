@@ -34,8 +34,8 @@ L.Control.Legend = L.Control.extend({
         symbol: d3.symbol().type(d3.symbolSquare).size(100)
       },
       {
-        type: 'culvert',
-        label: 'Culvert',
+        type: 'crossing',
+        label: 'Crossing',
         symbol: d3.symbol().type(d3.symbolCircle).size(100)
       }
     ];
@@ -360,11 +360,11 @@ export default {
 
       const typePaths = {
         dam: d3.symbol().type(d3.symbolSquare).size(r * 20),
-        culvert: d3.symbol().type(d3.symbolCircle).size(r * 10),
+        crossing: d3.symbol().type(d3.symbolCircle).size(r * 10),
       };
       const highlightTypePaths = {
         dam: d3.symbol().type(d3.symbolSquare).size(r * 20 * 3),
-        culvert: d3.symbol().type(d3.symbolCircle).size(r * 10 * 3),
+        crossing: d3.symbol().type(d3.symbolCircle).size(r * 10 * 3),
       };
 
       const barriers = this.layers.barriers
@@ -410,14 +410,14 @@ export default {
 
       const typePaths = {
         dam: d3.symbol().type(d3.symbolSquare).size(r * 20 * 3),
-        culvert: d3.symbol().type(d3.symbolCircle).size(r * 10 * 3),
+        crossing: d3.symbol().type(d3.symbolCircle).size(r * 10 * 3),
       };
 
       let barriers = [];
       if (this.highlight.surveyed) {
         barriers = [
           ...barriers,
-          ...this.barriers.filter(d => (d.type === 'culvert' && d.surveyed))
+          ...this.barriers.filter(d => (d.type === 'crossing' && d.surveyed))
         ];
       }
       if (this.highlight.dams) {
@@ -436,7 +436,7 @@ export default {
         .attr('class', 'highlight')
         .attr('fill', 'none')
         .attr('stroke', (d) => {
-          if (d.type === 'culvert' && d.surveyed) {
+          if (d.type === 'crossing' && d.surveyed) {
             return '#FF8F00';
           }
           if (d.type === 'dam') {
@@ -458,7 +458,7 @@ export default {
 
       const typePaths = {
         dam: d3.symbol().type(d3.symbolSquare).size(r * 20 * 3),
-        culvert: d3.symbol().type(d3.symbolCircle).size(r * 10 * 3),
+        crossing: d3.symbol().type(d3.symbolCircle).size(r * 10 * 3),
       };
 
 

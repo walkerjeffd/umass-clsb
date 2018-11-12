@@ -13,7 +13,7 @@ const barrierSchema = Joi.object({
   delta: Joi.number(),
   surveyed: Joi.boolean(),
   aquatic: Joi.number(),
-  type: Joi.string().allow(['culvert', 'dam']),
+  type: Joi.string().allow(['crossing', 'dam']),
   lat: Joi.number(),
   lon: Joi.number(),
   node_id: Joi.string().allow(null)

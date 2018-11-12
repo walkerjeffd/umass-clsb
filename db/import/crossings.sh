@@ -1,10 +1,10 @@
 #!/bin/bash
-# Import culverts from shapefile file to culverts table
-# usage: ./culverts.sh </path/to/DSL_critical_linkages_culverts_v3.0.shp>
+# Import crossings from shapefile file to crossings table
+# usage: ./crossings.sh </path/to/DSL_critical_linkages_culverts_v3.0.shp>
 
 set -eu
 
-TABLE=culverts
+TABLE=crossings
 FILE=$1
 
 . ../../config.sh

@@ -398,8 +398,8 @@ export default {
           return {
             id: d.id,
             n_barriers: d.barriers.length,
-            delta: d.results.delta,
-            effect: d.results.effect
+            connectivity_gain: d.results.delta,
+            restoration_potential: d.results.effect
           };
         });
 
@@ -409,13 +409,13 @@ export default {
             barriers.push({
               scenario_id: s.id,
               barrier_id: b.id,
-              barrier_lat: b.lat,
-              barrier_lon: b.lon,
-              barrier_type: b.type,
-              barrier_surveyed: b.surveyed,
-              barrier_delta: b.delta,
-              barrier_effect: b.effect,
-              barrier_aquatic: b.aquatic
+              lat: b.lat,
+              lon: b.lon,
+              type: b.type,
+              surveyed: b.surveyed,
+              connectivity_gain: b.delta,
+              restoration_potential: b.effect,
+              aquatic_passability: b.aquatic
             });
           });
         });
