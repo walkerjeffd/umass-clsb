@@ -234,7 +234,7 @@ export default {
       <strong>Surveyed:</strong> ${d.surveyed}<br>
       <strong>Restoration Potential:</strong> ${d.effect.toFixed(1)}<br>
       <strong>Connectivity Gain:</strong> ${d.delta.toFixed(1)}<br>
-      <strong>Aquatic Score:</strong> ${d.aquatic.toFixed(2)}<br>
+      <strong>Aquatic Passability:</strong> ${d.aquatic.toFixed(2)}<br>
     `));
 
     let moveTimeout;

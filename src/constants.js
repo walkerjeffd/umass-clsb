@@ -45,14 +45,15 @@ module.exports = {
     },
     {
       id: 'aquatic',
-      label: 'Aquatic Score',
+      label: 'Aquatic Passability',
       formats: {
         text: ',.2f',
         axis: ',.1s'
       },
       scale: {
         type: 'continuous',
-        transform: {}
+        transform: {},
+        reverse: true
       }
     }
   ]
