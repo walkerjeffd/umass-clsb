@@ -2,7 +2,7 @@ import Vue from 'vue';
 import Vuex from 'vuex';
 import axios from 'axios';
 
-import { VERSION, LOCALSTORAGE_PROJECT_KEY } from '@/constants';
+import { VERSION, LOCALSTORAGE_PROJECT_KEY, BATCH_CHUNK_SIZE } from '@/constants';
 import { validateProject } from '@/validation';
 
 const graph = require('../lib/graph/');
@@ -56,11 +56,14 @@ const store = new Vuex.Store({
       state.scenarios = scenarios;
     },
     SAVE_SCENARIO(state, scenario) {
+      state.scenarios.push(scenario);
+    },
+    UPDATE_SCENARIO(state, scenario) {
       const index = state.scenarios.findIndex(d => d.id === scenario.id);
       if (index >= 0) {
         state.scenarios[index] = scenario;
       } else {
-        state.scenarios.push(scenario);
+        throw new Error(`Scenario not found (id = ${scenario.id})`);
       }
     },
     DELETE_SCENARIO(state, scenario) {
@@ -131,17 +134,20 @@ const store = new Vuex.Store({
     loadScenario({ commit }, scenario) {
       commit('SET_SCENARIO', cloneScenario(scenario));
     },
+    createScenario({ commit }, scenario) {
+      commit('SAVE_SCENARIO', scenario);
+      return Promise.resolve(scenario);
+    },
     runScenario({ commit }, scenario) {
       const barrierIds = scenario.barriers.map(d => d.id);
 
       scenario.status = 'fetching';
-      commit('SAVE_SCENARIO', scenario);
       return axios.post('/network', { barrierIds })
         .then(response => response.data.data)
         .then((network) => {
           const { targets } = network;
           scenario.status = 'calculating';
-          commit('SAVE_SCENARIO', scenario);
+          commit('UPDATE_SCENARIO', scenario);
 
           setTimeout(() => {
             const { nodes, edges } = graph.trim(targets, network.nodes, network.edges);
@@ -153,24 +159,47 @@ const store = new Vuex.Store({
             };
 
             scenario.status = 'finished';
-            commit('SAVE_SCENARIO', scenario);
+            commit('UPDATE_SCENARIO', scenario);
           }, 100);
         })
         .catch((err) => {
-          alert('Error: Unable to calculate effect for selected barrier ids');
+          // alert('Error: Unable to calculate effect for selected barrier ids');
           console.error(err);
           scenario.status = 'failed';
-          commit('SAVE_SCENARIO', scenario);
+          commit('UPDATE_SCENARIO', scenario);
         });
+    },
+    runScenarios({ dispatch }, scenarios) {
+      // run all scenarios in serial using parallel chunks
+      const chunks = [];
+      while (scenarios.length > 0) {
+        chunks.push(scenarios.splice(0, BATCH_CHUNK_SIZE));
+      }
+
+      // https://decembersoft.com/posts/promises-in-serial-with-array-reduce/
+      return chunks.reduce((promises, chunkScenarios) => { // eslint-disable-line arrow-body-style
+        return promises.then((chainResults) => {
+          // console.log('running ', scenario.id);
+          const chunkPromises = chunkScenarios
+            .map(s => dispatch('runScenario', s));
+          return Promise.all(chunkPromises)
+            .then(currentResult => [...chainResults, ...currentResult]);
+        });
+      }, Promise.resolve([]));
     }
   }
 });
 
 store.subscribe((mutation, state) => {
-  if (mutation.type === 'SAVE_SCENARIO' &&
+  if (mutation.type === 'SAVE_SCENARIO') {
+    // skip localStorage update when saving new scenario
+    return;
+  }
+
+  if (mutation.type === 'UPDATE_SCENARIO' &&
       mutation.payload.status !== 'finished' &&
       mutation.payload.status !== 'failed') {
-    // skip localStorage update if saving a new scenario that has not finished or failed
+    // skip localStorage update if updating a scenario that has not finished or failed
     return;
   }
 

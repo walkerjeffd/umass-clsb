@@ -1,5 +1,6 @@
 <template>
   <v-card :max-height="maxHeight" style="overflow-y:auto;">
+    <!-- New/Existing Scenario -->
     <v-card-text>
       <h3>
         <span v-if="scenario.status === 'new'">New</span>
@@ -19,16 +20,27 @@
           {{ barrier.id }}
         </v-chip>
       </div>
-      <div class="grey--text text--darken-2 mt-3" v-else>
+      <div
+        class="grey--text text--darken-2 mt-3"
+        v-if="scenario.barriers.length === 0 && nScenariosRemaining > 0">
         <v-icon small>info</v-icon> Point and click on the map to select a barrier, or use the polygon/rectangle map tools to select multiple barriers.
       </div>
+      <v-alert
+        type="error"
+        outline
+        :value="nScenariosRemaining === 0"
+        class="mt-3">
+        You have reached the maximum number of scenarios ({{ nScenariosMax }}). Delete some existing scenarios to create new ones.
+      </v-alert>
     </v-card-text>
-    <v-card-actions class="pl-3 mb-2">
+
+    <!-- Run Scenario Buttons -->
+    <v-card-actions class="px-3 mb-2">
       <v-layout row wrap>
         <v-btn
           @click="createSingleScenario(scenario)"
           small
-          :disabled="scenario.barriers.length === 0">
+          :disabled="scenario.barriers.length === 0 || nScenariosRemaining === 0">
           <v-icon>play_arrow</v-icon> Run <span v-if="$vuetify.breakpoint.mdAndUp">&nbsp;Scenario</span>
         </v-btn>
         <v-btn
@@ -49,45 +61,60 @@
         </v-btn>
       </v-layout>
     </v-card-actions>
+
+    <!-- Subset Scenarios -->
     <v-card-text v-if="batch.show">
       <h3>Create Subset Scenarios</h3>
       <p class="caption lighten-1">
-        To automatically generate multiple scenarios containing subsets for all combinations of barriers that are currently selected, choose the number of barriers to be included in each subset scenario and then click Run.
+        Run multiple new scenarios, each containing a unique subset of the selected barriers. Choose the number of barriers to be included in each subset scenario and then click Run Subset Scenarios.
       </p>
+
       <v-alert
         :value="scenario.barriers.length >= batch.max"
         type="error"
         outline>
         Too many barriers selected, cannot be more than {{ batch.max }}.
       </v-alert>
+
       <v-alert
         :value="scenario.barriers.length < batch.min"
         type="error"
         outline>
         Too few barriers selected, must be at least {{ batch.min }}.
       </v-alert>
-      <div
+      <v-radio-group
+        v-model="batch.choose"
+        row
+        justify-right
+        class="my-0"
+        :rules="[batchRule]"
         v-if="(scenario.barriers.length <= batch.max) &&
-              (scenario.barriers.length >= batch.min)">
-        <p class="subheading">Number of Barriers in Each Scenario:</p>
-        <v-radio-group v-model="batch.choose" row justify-right class="text-xs-center">
-          <v-radio
-            v-for="i in 5"
-            :key="i"
-            :label="i.toString()"
-            :value="i"
-            :disabled="i >= scenario.barriers.length">
-          </v-radio>
-        </v-radio-group>
-        <div>
-          # Scenarios: {{ this.nBatchScenarios }}
+            (scenario.barriers.length >= batch.min)">
+        <div slot="label" class="mr-3 black--text">
+          # Barriers per Scenario:
         </div>
-      </div>
-      <v-layout justify-left>
+        <v-radio
+          v-for="i in 5"
+          class="my-0"
+          :key="i"
+          :label="i.toString()"
+          :value="i"
+          :disabled="i >= scenario.barriers.length">
+        </v-radio>
+      </v-radio-group>
+
+      <p v-if="batch.choose" class="mb-0">
+        Number of New Scenarios: {{ nBatchScenarios }}
+      </p>
+    </v-card-text>
+
+    <!-- Run Subset Scenario Buttons -->
+    <v-card-actions class="px-3 mb-2" v-if="batch.show">
+      <v-layout row wrap>
         <v-btn
           @click="createBatchScenarios(scenario)"
           small
-          :disabled="!batch.choose"
+          :disabled="!batch.choose || nBatchScenarios > nScenariosRemaining"
           :loading="batch.loading"
           v-show="(scenario.barriers.length <= batch.max) &&
                   (scenario.barriers.length >= batch.min)">
@@ -98,7 +125,8 @@
           <v-icon>cancel</v-icon> Cancel
         </v-btn>
       </v-layout>
-    </v-card-text>
+    </v-card-actions>
+
     <v-snackbar v-model="batch.snackbar.show" top :timeout="4000">
       {{ batch.snackbar.text }}
       <v-btn
@@ -109,6 +137,8 @@
       </v-btn>
     </v-snackbar>
     <v-divider></v-divider>
+
+    <!-- Scenarios List -->
     <v-card-text>
       <h3>Scenarios List</h3>
       <v-data-table
@@ -215,23 +245,25 @@
       <div>
         <strong>Status</strong>:
         <span v-if="nScenariosTotal === 0">No scenarios have been created</span>
-        <span v-else-if="nScenariosRemaining > 0">Running scenarios ({{ percentScenariosComplete.toFixed(1)}}% complete, {{ nScenariosRemaining }} remaining)</span>
+        <span v-else-if="nScenariosRunning > 0">Running scenarios ({{ percentScenariosComplete.toFixed(1)}}% complete, {{ nScenariosRunning }} remaining)</span>
         <span v-else>All scenarios have finished running</span>
       </div>
     </v-card-text>
+
+    <!-- Scenarios List Buttons -->
     <v-card-actions class="pa-3">
       <v-layout>
         <v-btn
           @click="downloadScenariosCsv"
           small
-          :disabled="scenarios.length === 0 || nScenariosRemaining > 0">
+          :disabled="scenarios.length === 0 || nScenariosRunning > 0">
           <v-icon>save_alt</v-icon> Download Scenarios (CSV)
         </v-btn>
         <v-spacer></v-spacer>
         <v-btn
           @click="clearScenarios"
           small
-          :disabled="scenarios.length === 0 || nScenariosRemaining > 0">
+          :disabled="scenarios.length === 0">
           <v-icon>delete</v-icon> Delete All Scenarios
         </v-btn>
       </v-layout>
@@ -245,6 +277,7 @@ import generatorics from 'generatorics';
 import download from 'downloadjs';
 
 import { number } from '@/filters';
+import { MAX_SCENARIOS } from '@/constants';
 
 const json2csv = require('json2csv');
 
@@ -258,6 +291,7 @@ export default {
   },
   data() {
     return {
+      nScenariosMax: MAX_SCENARIOS,
       batch: {
         choose: null,
         max: 50,
@@ -272,7 +306,8 @@ export default {
       pagination: {
         sortBy: 'results.effect',
         descending: true
-      }
+      },
+      error: ''
     };
   },
   computed: {
@@ -285,8 +320,11 @@ export default {
         .filter(d => d.status === 'finished' || d.status === 'failed')
         .length;
     },
-    nScenariosRemaining() {
+    nScenariosRunning() {
       return this.nScenariosTotal - this.nScenariosComplete;
+    },
+    nScenariosRemaining() {
+      return this.nScenariosTotal > this.nScenariosMax ? 0 : this.nScenariosMax - this.nScenariosTotal;
     },
     percentScenariosComplete() {
       return this.nScenariosTotal > 0 ? (this.nScenariosComplete / this.nScenariosTotal) * 100 : 100;
@@ -301,6 +339,9 @@ export default {
     },
     maxHeight() {
       return this.$vuetify.breakpoint.mdAndUp ? this.$vuetify.breakpoint.height - 160 : Infinity;
+    },
+    batchRule() {
+      return this.nBatchScenarios <= this.nScenariosRemaining || `Number of new scenarios would exceed the maximum number of scenarios (${this.nScenariosMax}). Delete some existing scenarios, select fewer barriers or try a different number of barriers per scenario.`;
     }
   },
   methods: {
@@ -325,8 +366,17 @@ export default {
         return null;
       }
 
+      if (this.nScenariosRemaining === 0) {
+        alert(`Cannot create any new scenarios. You have reached the limit (${this.nScenariosMax}`);
+        return null;
+      }
+
+      this.batch.choose = null;
+      this.batch.show = false;
+
       return this.newScenario(scenario.id)
-        .then(() => this.$store.dispatch('runScenario', scenario));
+        .then(() => this.$store.dispatch('createScenario', scenario))
+        .then(s => this.$store.dispatch('runScenario', s));
     },
     createBatchScenarios(scenario) {
       if (!scenario || scenario.barriers.length === 0) {
@@ -343,26 +393,29 @@ export default {
 
       const scenariosBarriers = [...generatorics.clone.combination(scenario.barriers, this.batch.choose)];
       const { id } = scenario;
-      const scenarios = scenariosBarriers.map((s, i) => {
+      const scenarios = scenariosBarriers.map((barriers, i) => {
         const newScenario = {
           id: id + i,
-          barriers: s,
+          barriers: barriers,
           status: 'new'
         };
         return newScenario;
       });
+
+      scenarios.map(s => this.$store.dispatch('createScenario', s));
 
       this.batch.snackbar.show = true;
       this.batch.snackbar.text = `Created ${scenarios.length} new scenarios, each with ${this.batch.choose} barrier(s)`;
       this.batch.choose = null;
       this.batch.show = false;
 
-      this.newScenario(scenario.id + (scenarios.length - 1))
-        .then(() => {
-          const promises = scenarios.map(s => this.$store.dispatch('runScenario', s));
-          this.batch.loading = false;
-          return Promise.all(promises);
-        });
+      this.$nextTick(() => {
+        this.newScenario(scenario.id + (scenarios.length - 1))
+          .then(() => {
+            this.$store.dispatch('runScenarios', scenarios);
+            this.batch.loading = false;
+          });
+      });
     },
     downloadScenariosCsv() {
       if (this.scenarios.length > 0) {
