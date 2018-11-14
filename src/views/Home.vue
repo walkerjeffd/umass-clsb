@@ -374,11 +374,16 @@ export default {
       this.colorScale = this.getColorScale(this.variable);
     },
     addBarrier(barrier) {
-      this.scenario.barriers.push(barrier);
+      const index = this.scenario.barriers.findIndex(d => d.id === barrier.id);
+      if (index < 0) {
+        this.scenario.barriers.push(barrier);
+      }
     },
     removeBarrier(barrier) {
       const index = this.scenario.barriers.findIndex(d => d.id === barrier.id);
-      this.scenario.barriers.splice(index, 1);
+      if (index >= 0) {
+        this.scenario.barriers.splice(index, 1);
+      }
     },
     setVariableById(id) {
       const index = this.variables.findIndex(d => d.id === id);

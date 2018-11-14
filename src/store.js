@@ -26,7 +26,6 @@ const store = new Vuex.Store({
     region: null,
     barriers: [],
     scenario: {
-      id: 0,
       barriers: [],
       status: 'new'
     },
@@ -55,13 +54,13 @@ const store = new Vuex.Store({
     SET_SCENARIOS(state, scenarios) {
       state.scenarios = scenarios;
     },
-    SAVE_SCENARIO(state, scenario) {
+    CREATE_SCENARIO(state, scenario) {
       state.scenarios.push(scenario);
     },
     UPDATE_SCENARIO(state, scenario) {
       const index = state.scenarios.findIndex(d => d.id === scenario.id);
       if (index >= 0) {
-        state.scenarios[index] = scenario;
+        Vue.set(state.scenarios, index, scenario);
       } else {
         throw new Error(`Scenario not found (id = ${scenario.id})`);
       }
@@ -98,8 +97,9 @@ const store = new Vuex.Store({
         });
     },
     clearScenarios({ commit, dispatch }) {
-      commit('SET_SCENARIOS', []);
-      return dispatch('newScenario');
+      console.log('store:clearScenarios');
+      return dispatch('newScenario')
+        .then(() => commit('SET_SCENARIOS', []));
     },
     setRegion({ commit }, region) {
       return axios.post('/barriers/geojson', {
@@ -119,12 +119,8 @@ const store = new Vuex.Store({
       }
       commit('DELETE_SCENARIO', scenario);
     },
-    newScenario({ commit, state }, lastId) {
-      lastId = lastId || 0;
-      const id = Math.max(...state.scenarios.map(d => d.id), lastId) + 1;
-
+    newScenario({ commit }) {
       const scenario = {
-        id,
         barriers: [],
         status: 'new'
       };
@@ -134,9 +130,28 @@ const store = new Vuex.Store({
     loadScenario({ commit }, scenario) {
       commit('SET_SCENARIO', cloneScenario(scenario));
     },
-    createScenario({ commit }, scenario) {
-      commit('SAVE_SCENARIO', scenario);
+    createScenario({ commit, state }, scenario) {
+      let id = 1;
+      if (state.scenarios.length > 0) {
+        id = Math.max(...state.scenarios.map(d => d.id)) + 1;
+      }
+      scenario.id = id;
+      commit('CREATE_SCENARIO', scenario);
       return Promise.resolve(scenario);
+    },
+    updateScenario({ commit, state }, scenario) {
+      const index = state.scenarios.findIndex(d => d.id === scenario.id);
+      if (index >= 0) {
+        if (scenario.results) {
+          delete scenario.results;
+        }
+        scenario.status = 'new';
+
+        // Vue.set(state.scenarios, index, scenario);
+        commit('UPDATE_SCENARIO', scenario);
+        return Promise.resolve(scenario);
+      }
+      return Promise.reject(new Error(`Scenario not found (id=${scenario.id})`));
     },
     runScenario({ commit }, scenario) {
       const barrierIds = scenario.barriers.map(d => d.id);
@@ -179,7 +194,6 @@ const store = new Vuex.Store({
       // https://decembersoft.com/posts/promises-in-serial-with-array-reduce/
       return chunks.reduce((promises, chunkScenarios) => { // eslint-disable-line arrow-body-style
         return promises.then((chainResults) => {
-          // console.log('running ', scenario.id);
           const chunkPromises = chunkScenarios
             .map(s => dispatch('runScenario', s));
           return Promise.all(chunkPromises)
@@ -191,12 +205,13 @@ const store = new Vuex.Store({
 });
 
 store.subscribe((mutation, state) => {
-  if (mutation.type === 'SAVE_SCENARIO') {
+  if (mutation.type === 'CREATE_SCENARIO') {
     // skip localStorage update when saving new scenario
     return;
   }
 
   if (mutation.type === 'UPDATE_SCENARIO' &&
+      mutation.payload.status !== 'updated' &&
       mutation.payload.status !== 'finished' &&
       mutation.payload.status !== 'failed') {
     // skip localStorage update if updating a scenario that has not finished or failed

@@ -3,9 +3,8 @@
     <!-- New/Existing Scenario -->
     <v-card-text>
       <h3>
-        <span v-if="scenario.status === 'new'">New</span>
-        <span v-else>Edit</span>
-        Scenario (ID: {{ scenario.id }})
+        <span v-if="scenario.status === 'new'">New Scenario</span>
+        <span v-else>Edit Scenario (ID: {{ scenario.id }})</span>
       </h3>
       <div>
         # Barriers Selected: <span v-if="scenario.barriers.length > 0">{{ scenario.barriers.length }}</span><span v-else>None</span>
@@ -345,13 +344,18 @@ export default {
     }
   },
   methods: {
-    ...mapActions(['deleteScenario', 'newScenario', 'loadScenario', 'clearScenarios']),
-    addBarrier(barrier) {
-      this.scenario.barriers.push(barrier);
+    ...mapActions(['deleteScenario', 'newScenario', 'loadScenario']),
+    clearScenarios() {
+      console.log('card:clearScenarios');
+      this.batch.choose = null;
+      this.batch.show = false;
+      return this.$store.dispatch('clearScenarios');
     },
     removeBarrier(barrier) {
-      const index = this.scenario.barriers.findIndex(d => d === barrier);
-      this.scenario.barriers.splice(index, 1);
+      const index = this.scenario.barriers.findIndex(d => d.id === barrier.id);
+      if (index >= 0) {
+        this.scenario.barriers.splice(index, 1);
+      }
     },
     selectRow(item) {
       if (this.scenario && this.scenario.id === item.id) {
@@ -374,8 +378,13 @@ export default {
       this.batch.choose = null;
       this.batch.show = false;
 
-      return this.newScenario(scenario.id)
-        .then(() => this.$store.dispatch('createScenario', scenario))
+      return this.newScenario()
+        .then(() => {
+          if (scenario.id) {
+            return this.$store.dispatch('updateScenario', scenario);
+          }
+          return this.$store.dispatch('createScenario', scenario);
+        })
         .then(s => this.$store.dispatch('runScenario', s));
     },
     createBatchScenarios(scenario) {
