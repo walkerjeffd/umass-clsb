@@ -1,0 +1,1244 @@
+---
+title: "HVA Scenarios Troubleshooting"
+author: "Jeffrey D Walker, PhD"
+date: "11/20/2018"
+output: 
+  html_document: 
+    number_sections: yes
+    toc: yes
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(jsonlite)
+
+theme_set(theme_bw())
+
+source("functions.R")
+
+source("functions/20180918/find.nodes.R")
+source("functions/20180918/get.graph.tiles.R")
+source("functions/20180918/graph.kernel.R")
+source("functions/20180918/graph.kernel.spread.R")
+source("functions/20180918/graph.linkages.R")
+source("functions/20180918/trim.along.graph.R")
+source("functions/20180918/trim.graph.R")
+
+
+config <- load_config()
+
+# load barriers
+project <- read_json("~/Downloads/hva-analysis (2).json", simplifyVector = TRUE)
+targets <- project$scenarios$barriers[[which(project$scenarios$id == 60)]] %>%
+  select(id, x = x_coord, y = y_coord)
+```
+
+Full scenario results, both effect and delta are zero.
+
+```{r}
+result <- graph.linkages(targets = targets, source = config$tiles$dir)
+print(result$results$delta)
+print(result$results$effect)
+```
+
+Individual barrier scenarios, not zero
+
+```{r}
+result1 <- graph.linkages(targets = targets[1, ], source = config$tiles$dir)
+print(result1$results$delta)
+print(result1$results$effect)
+```
+
+```{r}
+result2 <- graph.linkages(targets = targets[2, ], source = config$tiles$dir)
+print(result2$results$delta)
+print(result2$results$effect)
+```
+
+
+# Full Scenario
+
+## Initialization
+
+The initial arguments to `graph.linkages()` are
+
+```{r}
+# arguments to graph.linkages
+targets = targets                 # df of x,y locations of target culverts/dams
+source = config$tiles$dir         # folder containing tiles
+internode = 200                   # internode interval (gives maximum edge length)
+tilesize = 400                    # size of tiles
+bandwidth = 5000                  # bandwidth (m)
+search = 1.5                      # search distance (multiple of bandwidth)
+cellsize = 30                     # size of cells (m)
+fudge = 75                        # how far (m) do we allow x,ys to be from actual culverts?
+scaleby = 0.001                   # parameter from CAPS LINKAGES; use 0.001
+multiplier = 1000 * 0.2495 * 4.88 # multiply scaled kernels to match AQCONNECT
+```
+
+First, set the upgrade cost to zero for the target node:
+
+```{r}
+targets$upgrades <- 0
+```
+
+## Load Tile Files
+
+The first step is to get the graph tiles associated with the target crossing using the `get.graph.tiles()` function.
+
+```{r, eval=FALSE}
+d <- get.graph.tiles(points = targets, bandwidth = bandwidth, search = search, tilesize = tilesize, internode = internode, cellsize = cellsize, fudge = fudge, source = source, upgrades = TRUE, chatter = FALSE)
+```
+
+Most arguments are passed in from `graph.linkages()`, plus these additional arguments:
+
+```{r}
+# get.graph.tiles() arguments
+points = as.data.frame(targets) # df of x,y locations of target culverts/dams
+nodecosts = NULL                # ??
+upgrades = TRUE                 # if TRUE, use points$upgrades for nodecosts in trim.along.graph
+```
+
+Compute buffer around points (`maxdist`), which is the farthest distance (m) that kernels can be affected by a given culvert.
+
+```{r}
+maxdist <- bandwidth * search + internode + fudge
+maxdist
+```
+
+Calculate buffer bounding box (`[[xmin, ymin], [xmax, ymax]]`) around each target.
+
+```{r}
+xys <- points[, c('x', 'y')]
+xys <- cbind(xys, xys - maxdist, xys + maxdist)
+colnames(xys) <- c('x', 'y', 'xmin', 'ymin', 'xmax', 'ymax')
+xys
+```
+
+Load tile index from text file (`graphtiles.txt`).
+
+```{r}
+tiles <- read.table(paste(source, 'graphtiles.txt', sep = ''), sep = '\t', header = TRUE)
+head(tiles)
+```
+
+Find tiles that are within each target buffer
+
+```{r}
+# find tiles with our xys + buffer
+q <- outer(tiles$xmin, xys$xmax, '<=') & outer(tiles$ymin, xys$ymax, '<=') & outer(tiles$xmax, xys$xmin, '>=') & outer(tiles$ymax, xys$ymin, '>=')
+b <- apply(q, 1, 'any')
+tiles <- tiles[b,]                                  # these are our tiles
+tiles
+```
+
+Create list of filenames for corresponding tiles.
+
+```{r}
+f <- paste(source, sprintf('graph%03d%03d.RDS', tiles$row, tiles$col), sep = '')
+f
+```
+
+Set up nodes and edges matrices
+
+```{r}
+nodes <- edges <- matrix(0, 0, 0)
+```
+
+Each tile RDS is a list of length 2. The first element contains the nodes in that tile with their id, x, y, and cost. The second element contains the edges between two nodes, and includes the length, cost and value.
+
+```{r}
+str(readRDS(f[1]))
+```
+
+
+For each tile, load the RDS file, and append the nodes and edges to current matrices.
+
+```{r}
+for(i in 1:dim(tiles)[1]) {                         # for each tile,
+  q <- readRDS(f[i])
+  nodes <- rbind(nodes, q[[1]])
+  edges <- rbind(edges, q[[2]])
+}
+
+# remove duplicate edges dangling between two tiles
+edges <- unique(edges)
+```
+
+The `nodes` matrix contains `r nrow(nodes)` rows.
+
+```{r}
+head(nodes)
+```
+
+The `edges` matrix contains `r nrow(edges)` rows.
+
+```{r}
+head(edges)
+```
+
+This map shows the nodes colored by cost, the graph tile boundaries, the location of the target (red circle), and the buffer around the target (red box).
+
+```{r}
+nodes %>% 
+  ggplot() +
+  geom_point(aes(x, y, color = cost)) +
+  geom_rect(
+    data = tiles,
+    aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
+    fill = NA,
+    color = "black"
+  ) +
+  geom_point(
+    data = targets,
+    aes(x, y),
+    size = 4, 
+    color = "red"
+  ) +
+  geom_rect(
+    data = xys,
+    aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
+    fill = NA,
+    color = "red"
+  ) +
+  coord_equal() +
+  scale_colour_distiller(palette = "Spectral", type = "div") +
+  labs(x = NULL, y = NULL)
+```
+
+Same map, zoomed in to target and showing the edges.
+
+```{r, warning=FALSE}
+nodes %>% 
+  ggplot() +
+  geom_segment(
+    data = edges %>% 
+      left_join(
+        select(nodes, node1 = nodeid, x1 = x, y1 = y),
+        by = "node1"
+      ) %>% 
+      left_join(
+        select(nodes, node2 = nodeid, x2 = x, y2 = y),
+        by = "node2"
+      ),
+    aes(x = x1, xend = x2, y = y1, yend = y2, color = cost)
+  ) +
+  geom_point(aes(x, y, fill = cost), shape = 21, size = 3) +
+  geom_rect(
+    data = tiles,
+    aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
+    fill = NA,
+    color = "black"
+  ) +
+  geom_point(
+    data = targets,
+    aes(x, y),
+    size = 8, 
+    color = "red",
+    shape = 21
+  ) +
+  geom_text(
+    data = targets,
+    aes(x, y, label = "Target"),
+    hjust = 0,
+    nudge_x = 50,
+    color = "red"
+  ) +
+  geom_rect(
+    data = xys,
+    aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
+    fill = NA,
+    color = "red"
+  ) +
+  coord_equal(xlim = c(targets$x - 1000, targets$x + 1000), ylim = c(targets$y - 1000, targets$y + 1000)) +
+  scale_fill_distiller("node cost", palette = "Spectral", type = "div") +
+  scale_color_distiller("edge cost", palette = "Spectral", type = "div") +
+  labs(x = NULL, y = NULL)
+```
+
+## Trim Graph
+
+After combining all tiles within the buffer (`maxdist`) of each target, the network is trimmed to circles using `trim.graph()`, which returns a 2-element list containin `nodes` and `edges`.
+
+```{r}
+n <- trim.graph(nodes, edges, xys, maxdist, points = TRUE, chatter = FALSE)
+str(n)
+```
+
+There are now `r nrow(n$nodes)` nodes and `r nrow(n$edges)` edges.
+
+```{r}
+n$nodes %>% 
+  ggplot() +
+  geom_point(aes(x, y, color = cost)) +
+  geom_rect(
+    data = tiles,
+    aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
+    fill = NA,
+    color = "black"
+  ) +
+  geom_point(
+    data = targets,
+    aes(x, y),
+    size = 4, 
+    color = "red"
+  ) +
+  geom_rect(
+    data = xys,
+    aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
+    fill = NA,
+    color = "red"
+  ) +
+  coord_equal() +
+  scale_colour_distiller(palette = "Spectral", type = "div") +
+  labs(x = NULL, y = NULL)
+```
+
+Then we find the node closest to the target and within maximum distance defined by `fudge`.
+
+```{r}
+p <- find.nodes(xys, n$nodes, fudge)
+p
+```
+
+Append this nearest node as column `nodeid` in the points dataframe
+
+```{r}
+points <- cbind(points, p)
+names(points)[dim(points)[2]] <- 'nodeid'
+points
+```
+
+Extract costs of all nodes within region, and set cost to 0 for node nearest to target (`points$upgrades` set to 0 at start of `graph.linkages()`).
+
+```{r}
+nodecosts <- n$nodes$cost
+nodecosts[match(points$nodeid, n$nodes$nodeid)] <- points$upgrades
+head(nodecosts)
+```
+
+Trim the graph again to to only include nodes and edges that are actually reachable within bandwidth (`r bandwidth` m) from the target(s).
+
+```{r}
+n <- trim.along.graph(n$nodes, n$edges, p, bandwidth = bandwidth, cellsize = cellsize, nodecosts = nodecosts, chatter = FALSE)
+```
+
+There are now `r nrow(n$nodes)` nodes and `r nrow(n$edges)` edges.
+
+```{r}
+n$nodes %>% 
+  ggplot() +
+  geom_segment(
+    data = n$edges %>% 
+      left_join(
+        select(n$nodes, node1 = nodeid, x1 = x, y1 = y),
+        by = "node1"
+      ) %>% 
+      left_join(
+        select(n$nodes, node2 = nodeid, x2 = x, y2 = y),
+        by = "node2"
+      ),
+    aes(x = x1, xend = x2, y = y1, yend = y2, color = cost)
+  ) +
+  geom_point(aes(x, y, fill = cost), shape = 21, size = 3) +
+  geom_point(
+    data = targets,
+    aes(x, y),
+    size = 8, 
+    color = "red",
+    shape = 21
+  ) +
+  geom_text(
+    data = targets,
+    aes(x, y, label = "Target"),
+    hjust = 0,
+    nudge_x = 50,
+    color = "red"
+  ) +
+  scale_fill_distiller("node cost", palette = "Spectral", type = "div") +
+  scale_color_distiller("edge cost", palette = "Spectral", type = "div") +
+  labs(x = NULL, y = NULL) +
+  theme_dark()
+```
+
+Lastly, return list object contain the final `nodes`, `edges`, and `targets`.
+
+```{r}
+d <- list(nodes = n$nodes, edges = n$edges, targets = points)
+str(d)
+```
+
+## Build Kernels
+
+Given the results from `d <- get.graph.tiles()`, extract `targets`, `nodes`, and `edges`.
+
+```{r}
+targets <- d$targets    # now have nodeids in targets
+nodes <- d$nodes
+edges <- d$edges
+```
+
+Set `upgrades` column to `cost` in `nodes` data frame (target nodes have zero cost). Note that the 8th row is the target node, which has a cost of 4.517925 but an upgrade cost of 0. For all other nodes, `cost = upgrades`.
+
+```{r}
+nodes$upgrades <- nodes$cost
+nodes$upgrades[match(targets$nodeid, nodes$nodeid)] <- 0    # upgrade culverts and dams to cost = 0
+nodes
+```
+
+Then we build the kernels for both `base` and `alt` scenarios. Each kernel is a numeric vector with length equal to number of edges (`r nrow(edges)`).
+
+```{r}
+base <- alt <- rep(0, dim(edges)[1])
+str(base)
+```
+
+For each edge, construct the resistance kernel through the graph using the `graph.kernel` function, which returns a 2-element list containing the scaled `kern` and un-scaled `rawkern` vectors.
+
+For example, the kernel for the first edge is:
+
+```{r}
+graph.kernel(edge = 1, nodes = nodes, edges = edges, nodecost = nodes$cost, multiplier = multiplier)
+```
+
+The `kern` vector is then multiplied by the number of focal cells in the edge (`= edge length / cell size`)
+
+```{r}
+edges$length[1] / cellsize
+```
+
+And added to the base kernel
+
+```{r, eval = FALSE}
+base <- base + graph.kernel(1, nodes, edges, multiplier = multiplier)$kern * edges$length[1] / cellsize
+```
+
+For the same edge, the resistence kernel is again computed using the upgrade costs (`nodes$upgrades`), for which is identical to the baseline node costs (`nodes$costs`) except for the target node, which now has a cost of zero.
+
+```{r}
+graph.kernel(i, nodes, edges, nodecost = nodes$upgrades, multiplier = multiplier)
+```
+
+```{r, eval=FALSE}
+alt <- alt + graph.kernel(i, nodes, edges, nodecost = nodes$upgrades, multiplier = multiplier)$kern * edges$length[i] / cellsize
+```
+
+This process is repeated for each edge, with results added to the baseline and alternative scenario kernels.
+
+```{r}
+base <- alt <- rep(0, dim(edges)[1])
+for(i in 1:dim(edges)[1]) {                 # for each edge, build base and alt kernels
+  base <- base + graph.kernel(i, nodes, edges, multiplier = multiplier)$kern * edges$length[i] / cellsize      # kernel x # of focal cells
+  alt <- alt + graph.kernel(i, nodes, edges, nodecost = nodes$upgrades, multiplier = multiplier)$kern * edges$length[i] / cellsize
+}
+cbind(base = base, alt = alt)
+```
+
+Then we adjust these `base` and `alt` kernels for the number of cells within each edge (`edges$length / cellsize`)
+
+```{r}
+base <- base * edges$length / cellsize
+alt <- alt * edges$length / cellsize
+cbind(base = base, alt = alt)
+```
+
+## Compute Delta and Effect
+
+Now, we can compute the delta for each edge as the change from `alt` to `base` and scaled by `scaleby` parameter (`r scaleby`).
+
+```{r}
+deltas <- (alt - base) / scaleby
+deltas
+```
+
+The effect for each edge is the detla multiplied by the edge value (??) and divided by the number of cells within the edge.
+
+```{r}
+effects <- deltas * edges$value / (edges$length / cellsize)
+effects
+```
+
+Finally, the overall delta and effect is then the sum of individual deltas and effects.
+
+```{r}
+delta <- sum(deltas)
+effect <- sum(effects)
+c(delta = delta, effect = effect)
+```
+
+And this is the result for the given target.
+
+## Compute Kernel Walk Through
+
+The problem seems to stem from `graph.kernel()`, and could be caused by breaks in the network. 
+
+For both targets, the corresponding nodes only have one edge, not two. Which edges correspond to the target nodes?
+
+```{r}
+which(edges$node1 == targets$nodeid[1])
+which(edges$node2 == targets$nodeid[1])
+# target 1 = edge 11
+
+which(edges$node1 == targets$nodeid[2])
+which(edges$node2 == targets$nodeid[2])
+# target 2 = edge 37
+```
+
+```{r}
+bench = 62620.5
+base <- rep(0, dim(edges)[1])
+base_kern_all <- data_frame()
+
+for(i in 1:dim(edges)[1]) {                 # for each edge, build base and alt kernels
+  # base <- base + graph.kernel(i, nodes, edges, multiplier = multiplier)$kern * edges$length[i] / cellsize
+
+  edge <- i
+  
+  graph.kern <- rep(0, dim(edges)[1])             # raw kernel
+  graph.kern[edge] <- account <- bandwidth * 3 / cellsize
+  graph.kernel.spread(edge, 1, account, nodes = nodes, edges = edges, nodecost = nodes$cost)   # recursively spread in each direction
+  graph.kernel.spread(edge, 2, account, nodes = nodes, edges = edges, nodecost = nodes$cost)
+
+  # rescale as in AQCONNECT
+  kern <- multiplier * (graph.kern > 0) * dnorm(3 - graph.kern / (bandwidth / cellsize)) / bench     # Gaussian scaling, as in AQCONNECT/CONNECT_RESCALE
+
+  base_kern_all <- bind_rows(
+    base_kern_all,
+    data_frame(i = i, edge = 1:length(kern), kern = kern * edges$length[i] / cellsize)
+  )
+  
+  # list(kern = kern, rawkern = graph.kern)
+  # alt <- alt + graph.kernel(i, nodes, edges, nodecost = nodes$upgrades, multiplier = multiplier)$kern * edges$length[i] / cellsize
+  base <- base + kern * edges$length[i] / cellsize
+}
+base <- base * edges$length / cellsize
+
+# same as original results
+all(result$results$kernels$base - base == 0)
+base
+```
+
+```{r}
+alt <- rep(0, dim(edges)[1])
+alt_kern_all <- data_frame()
+
+for(i in 1:dim(edges)[1]) {                 # for each edge, build base and alt kernels
+  # alt <- alt + graph.kernel(i, nodes, edges, nodecost = nodes$upgrades, multiplier = multiplier)$kern * edges$length[i] / cellsize
+
+  edge <- i
+  
+  graph.kern <<- rep(0, dim(edges)[1])             # raw kernel
+  graph.kern[edge] <- account <- bandwidth * 3 / cellsize
+  graph.kernel.spread(edge, 1, account, nodes = nodes, edges = edges, nodecost = nodes$upgrades)   # recursively spread in each direction
+  graph.kernel.spread(edge, 2, account, nodes = nodes, edges = edges, nodecost = nodes$upgrades)
+
+  # rescale as in AQCONNECT
+  kern <- multiplier * (graph.kern > 0) * dnorm(3 - graph.kern / (bandwidth / cellsize)) / bench     # Gaussian scaling, as in AQCONNECT/CONNECT_RESCALE
+  
+  alt_kern_all <- bind_rows(
+    alt_kern_all,
+    data_frame(i = i, edge = 1:length(kern), kern = kern * edges$length[i] / cellsize)
+  )
+  
+  alt <- alt + kern * edges$length[i] / cellsize
+}
+alt <- alt * edges$length / cellsize
+
+# same as original results
+all(result$results$kernels$alt - alt == 0)
+alt
+```
+
+For each edge iteration, the summed difference in kernels is always zero.
+
+```{r}
+bind_rows(
+    base_kern_all %>% mutate(name = "base"),
+    alt_kern_all %>% mutate(name = "alt")
+  ) %>%
+  spread(name, kern) %>% 
+  mutate(kern = alt - base) %>% 
+  group_by(i) %>% 
+  summarise(kern = sum(kern)) %>% 
+  summary()
+```
+
+Kernels are identical
+
+```{r}
+x <- bind_rows(
+    base_kern_all %>% mutate(name = "base"),
+    alt_kern_all %>% mutate(name = "alt")
+  ) %>% 
+  group_by(name, edge) %>% 
+  summarise(kern = sum(kern)) %>% 
+  mutate(
+    kern = kern * edges$length / cellsize
+  )
+sum(base - spread(x, name, kern)$base)
+sum(alt - spread(x, name, kern)$alt)
+
+x %>% 
+  left_join(
+    edges %>% 
+      mutate(edge = row_number()),
+    by = "edge"
+  ) %>% 
+  left_join(
+    select(nodes, node1 = nodeid, x1 = x, y1 = y),
+    by = "node1"
+  ) %>% 
+  left_join(
+    select(nodes, node2 = nodeid, x2 = x, y2 = y),
+    by = "node2"
+  ) %>% 
+  ggplot() +
+  geom_segment(
+    aes(x = x1, xend = x2, y = y1, yend = y2, color = kern)
+  ) +
+  geom_point(
+    data = nodes,
+    aes(x, y, fill = cost), shape = 21, size = 3
+  ) +
+  geom_point(
+    data = targets,
+    aes(x, y),
+    size = 8, 
+    color = "red",
+    shape = 21
+  ) +
+  geom_text(
+    data = targets,
+    aes(x, y, label = "Target"),
+    hjust = 0,
+    nudge_x = 50,
+    color = "red"
+  ) +
+  scale_fill_distiller("node cost", palette = "Spectral", type = "div") +
+  scale_color_distiller("kernel", palette = "Spectral", type = "div") +
+  labs(x = NULL, y = NULL) +
+  facet_wrap(~ name, ncol = 1) +
+  theme_dark()
+```
+
+For the first target (`nodeid = 10205005143, edge = 11`), let's see what happens as the kernel is built.
+
+The edge has `node1` as the target, and `node2` is `10205005144`
+
+```{r}
+edge <- 11
+edges[edge, ]
+```
+
+Initial kernel, set value to 500 at current edge.
+
+```{r}
+graph.kern <- rep(0, dim(edges)[1])             # raw kernel
+graph.kern[edge] <- account <- bandwidth * 3 / cellsize
+graph.kern
+```
+
+Spread downstream, no effect because its at the end of the network (no downstream edge)
+
+```{r}
+graph.kernel.spread(edge, 1, account, nodes = nodes, edges = edges, nodecost = nodes$cost)   # recursively spread in each direction
+graph.kern
+```
+
+Spreading upstream, there is an effect. But how is it computed?
+
+Start by finding the index of the NEXT node in the network (connected to the first node, which is the target, by the current edge)
+
+```{r}
+# graph.kernel.spread(edge, 2, account, nodes = nodes, edges = edges, nodecost = nodes$cost)
+
+direction = 2
+nodecost = nodes$cost # nodes$upgrades
+edgecost = edges$cost
+
+# first, find the index of the next node (10205005144) using the current edge
+n <- match(edges[edge, direction], nodes$nodeid)
+n
+nodes[n, ]
+```
+
+Then subtract the cost of the next node, which is zero. So no change in the account.
+
+```{r}
+a <- account - nodecost[n]
+a
+```
+
+If depleted, then we're done
+
+```{r, eval=FALSE}
+if (a <= 0)
+  return(NULL)
+```
+
+Otherwise, find edges adjacent to node `n` (`10205005144`), which includes current edge (`11`) and next edge (`12`).
+
+```{r}
+e <- (1:dim(edges)[1])[(edges$node1 %in% nodes$nodeid[n]) | (edges$node2 %in% nodes$nodeid[n])]    # adjacent edges
+e
+```
+
+Then remove current edge
+
+```{r}
+e <- e[e != edge]
+e
+```
+
+For each remaining edge (just `12`), update the kernel at that position by subtracting the corresponding edge cost. And then repeat recursively for the next edge. 
+
+```{r, eval=FALSE}
+for (i in e) {                                # for each adjacent edge,
+  graph.kern[i] <<- max(a - edgecost[i], 0)   # subtract edge cost (but don't go below zero)
+  if (graph.kern[i] <= 0)                     # if account is depleted, we're done
+    return(NULL)
+  graph.kernel.spread(i, (edges$node1[i] == nodes$nodeid[n]) + 1, graph.kern[i], nodes = nodes, edges = edges, nodecost = nodecost)
+}
+```
+
+Therefore, the kernel DOES NOT subtract the cost of the current node. It begins with the next adjacent one.
+
+What about starting a near-by edge, wouldn't that incorporate the 
+
+```{r}
+edge <- 12
+edges[edge, ]
+```
+
+Initial kernel, set value to 500 at current edge.
+
+```{r}
+graph.kern <- rep(0, dim(edges)[1])             # raw kernel
+graph.kern[edge] <- account <- bandwidth * 3 / cellsize
+graph.kern
+```
+
+Spread downstream, subtracts only the edge cost (31.36), not the final node cost, and then stops because no additional edges
+
+```{r}
+graph.kernel.spread(edge, 1, account, nodes = nodes, edges = edges, nodecost = nodes$cost)   # recursively spread in each direction
+graph.kern
+```
+
+```{r}
+# graph.kernel.spread(edge, 1, account, nodes = nodes, edges = edges, nodecost = nodes$cost)   # recursively spread in each direction
+graph.kern <- rep(0, dim(edges)[1])             # raw kernel
+graph.kern[edge] <- account <- bandwidth * 3 / cellsize
+graph.kern
+
+direction = 1
+nodecost = nodes$cost # nodes$upgrades
+edgecost = edges$cost
+
+# first, find the index of the next node (10205005144) using the current edge
+n <- match(edges[edge, direction], nodes$nodeid)
+n
+nodes[n, ]
+
+# nodecost[n] is zero, so no change
+a <- account - nodecost[n]
+a
+
+# skip
+if (a <= 0)
+  return(NULL)
+
+# find adjacent edges
+e <- (1:dim(edges)[1])[(edges$node1 %in% nodes$nodeid[n]) | (edges$node2 %in% nodes$nodeid[n])]    # adjacent edges
+e
+
+# exclude current edge (12)
+e <- e[e != edge]
+e
+
+
+# for (i in e) {                                # for each adjacent edge,
+#   graph.kern[i] <<- max(a - edgecost[i], 0)   # subtract edge cost (but don't go below zero)
+#   if (graph.kern[i] <= 0)                     # if account is depleted, we're done
+#     return(NULL)
+#   graph.kernel.spread(i, (edges$node1[i] == nodes$nodeid[n]) + 1, graph.kern[i], nodes = nodes, edges = edges, nodecost = nodecost)
+# }
+
+# now at edge 11
+i <- e
+
+# subtract edge 11 cost (31.36)
+graph.kern[i] <- max(a - edgecost[i], 0)
+graph.kern
+
+# skip, not true
+if (graph.kern[i] <= 0)                     # if account is depleted, we're done
+  return(NULL)
+
+# then spread kernel starting at edge 11
+# graph.kernel.spread(i, (edges$node1[i] == nodes$nodeid[n]) + 1, graph.kern[i], nodes = nodes, edges = edges, nodecost = nodecost)
+
+# direction is still 1
+direction = 1 # (edges$node1[i] == nodes$nodeid[n]) + 1
+
+# edge is now 11
+edge <- i
+edges[edge, ]
+
+# find the index of the next node (10205005143) using the current edge
+n <- match(edges[edge, direction], nodes$nodeid)
+n
+nodes[n, ]
+
+# subtract nodecost[n] = 8.42. if using upgrades, then it would be zero here!
+a <- account - nodecost[n]
+a
+
+# skip
+if (a <= 0)
+  return(NULL)
+
+# find edges adjacent to current node (n)
+e <- (1:dim(edges)[1])[(edges$node1 %in% nodes$nodeid[n]) | (edges$node2 %in% nodes$nodeid[n])]    # adjacent edges
+e
+
+# exclude current edge (11), which leaves us with no more edges! So the new account value is never saved to graph.kern
+e <- e[e != edge]
+e
+```
+
+# Single Target
+
+Ok, but why then does it work when only including one of the targets?
+
+```{r}
+result1 <- graph.linkages(targets = targets[1, ], source = config$tiles$dir)
+print(result1$results$delta)
+print(result1$results$effect)
+```
+
+The initial arguments to `graph.linkages()` are
+
+```{r}
+# arguments to graph.linkages
+targets = targets[1, ]                 # df of x,y locations of target culverts/dams
+source = config$tiles$dir         # folder containing tiles
+internode = 200                   # internode interval (gives maximum edge length)
+tilesize = 400                    # size of tiles
+bandwidth = 5000                  # bandwidth (m)
+search = 1.5                      # search distance (multiple of bandwidth)
+cellsize = 30                     # size of cells (m)
+fudge = 75                        # how far (m) do we allow x,ys to be from actual culverts?
+scaleby = 0.001                   # parameter from CAPS LINKAGES; use 0.001
+multiplier = 1000 * 0.2495 * 4.88 # multiply scaled kernels to match AQCONNECT
+```
+
+First, set the upgrade cost to zero for the target node:
+
+```{r}
+targets$upgrades <- 0
+```
+
+## Load Tile Files
+
+The first step is to get the graph tiles associated with the target crossing using the `get.graph.tiles()` function.
+
+```{r, eval=FALSE}
+d <- get.graph.tiles(points = targets, bandwidth = bandwidth, search = search, tilesize = tilesize, internode = internode, cellsize = cellsize, fudge = fudge, source = source, upgrades = TRUE, chatter = FALSE)
+```
+
+Most arguments are passed in from `graph.linkages()`, plus these additional arguments:
+
+```{r}
+# get.graph.tiles() arguments
+points = as.data.frame(targets) # df of x,y locations of target culverts/dams
+nodecosts = NULL                # ??
+upgrades = TRUE                 # if TRUE, use points$upgrades for nodecosts in trim.along.graph
+```
+
+Compute buffer around points (`maxdist`), which is the farthest distance (m) that kernels can be affected by a given culvert.
+
+```{r}
+maxdist <- bandwidth * search + internode + fudge
+maxdist
+```
+
+Calculate buffer bounding box (`[[xmin, ymin], [xmax, ymax]]`) around each target.
+
+```{r}
+xys <- points[, c('x', 'y')]
+xys <- cbind(xys, xys - maxdist, xys + maxdist)
+colnames(xys) <- c('x', 'y', 'xmin', 'ymin', 'xmax', 'ymax')
+xys
+```
+
+Load tile index from text file (`graphtiles.txt`).
+
+```{r}
+tiles <- read.table(paste(source, 'graphtiles.txt', sep = ''), sep = '\t', header = TRUE)
+head(tiles)
+```
+
+Find tiles that are within each target buffer
+
+```{r}
+# find tiles with our xys + buffer
+q <- outer(tiles$xmin, xys$xmax, '<=') & outer(tiles$ymin, xys$ymax, '<=') & outer(tiles$xmax, xys$xmin, '>=') & outer(tiles$ymax, xys$ymin, '>=')
+b <- apply(q, 1, 'any')
+tiles <- tiles[b,]                                  # these are our tiles
+tiles
+```
+
+Create list of filenames for corresponding tiles.
+
+```{r}
+f <- paste(source, sprintf('graph%03d%03d.RDS', tiles$row, tiles$col), sep = '')
+f
+```
+
+Set up nodes and edges matrices
+
+```{r}
+nodes <- edges <- matrix(0, 0, 0)
+```
+
+Each tile RDS is a list of length 2. The first element contains the nodes in that tile with their id, x, y, and cost. The second element contains the edges between two nodes, and includes the length, cost and value.
+
+```{r}
+str(readRDS(f[1]))
+```
+
+
+For each tile, load the RDS file, and append the nodes and edges to current matrices.
+
+```{r}
+for(i in 1:dim(tiles)[1]) {                         # for each tile,
+  q <- readRDS(f[i])
+  nodes <- rbind(nodes, q[[1]])
+  edges <- rbind(edges, q[[2]])
+}
+
+# remove duplicate edges dangling between two tiles
+edges <- unique(edges)
+```
+
+The `nodes` matrix contains `r nrow(nodes)` rows.
+
+```{r}
+head(nodes)
+```
+
+The `edges` matrix contains `r nrow(edges)` rows.
+
+```{r}
+head(edges)
+```
+
+This map shows the nodes colored by cost, the graph tile boundaries, the location of the target (red circle), and the buffer around the target (red box).
+
+```{r}
+nodes %>% 
+  ggplot() +
+  geom_point(aes(x, y, color = cost)) +
+  geom_rect(
+    data = tiles,
+    aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
+    fill = NA,
+    color = "black"
+  ) +
+  geom_point(
+    data = targets,
+    aes(x, y),
+    size = 4, 
+    color = "red"
+  ) +
+  geom_rect(
+    data = xys,
+    aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
+    fill = NA,
+    color = "red"
+  ) +
+  coord_equal() +
+  scale_colour_distiller(palette = "Spectral", type = "div") +
+  labs(x = NULL, y = NULL)
+```
+
+Same map, zoomed in to target and showing the edges.
+
+```{r, warning=FALSE}
+nodes %>% 
+  ggplot() +
+  geom_segment(
+    data = edges %>% 
+      left_join(
+        select(nodes, node1 = nodeid, x1 = x, y1 = y),
+        by = "node1"
+      ) %>% 
+      left_join(
+        select(nodes, node2 = nodeid, x2 = x, y2 = y),
+        by = "node2"
+      ),
+    aes(x = x1, xend = x2, y = y1, yend = y2, color = cost)
+  ) +
+  geom_point(aes(x, y, fill = cost), shape = 21, size = 3) +
+  geom_rect(
+    data = tiles,
+    aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
+    fill = NA,
+    color = "black"
+  ) +
+  geom_point(
+    data = targets,
+    aes(x, y),
+    size = 8, 
+    color = "red",
+    shape = 21
+  ) +
+  geom_text(
+    data = targets,
+    aes(x, y, label = "Target"),
+    hjust = 0,
+    nudge_x = 50,
+    color = "red"
+  ) +
+  geom_rect(
+    data = xys,
+    aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
+    fill = NA,
+    color = "red"
+  ) +
+  coord_equal(xlim = c(targets$x - 1000, targets$x + 1000), ylim = c(targets$y - 1000, targets$y + 1000)) +
+  scale_fill_distiller("node cost", palette = "Spectral", type = "div") +
+  scale_color_distiller("edge cost", palette = "Spectral", type = "div") +
+  labs(x = NULL, y = NULL)
+```
+
+## Trim Graph
+
+After combining all tiles within the buffer (`maxdist`) of each target, the network is trimmed to circles using `trim.graph()`, which returns a 2-element list containin `nodes` and `edges`.
+
+```{r}
+n <- trim.graph(nodes, edges, xys, maxdist, points = TRUE, chatter = FALSE)
+str(n)
+```
+
+There are now `r nrow(n$nodes)` nodes and `r nrow(n$edges)` edges.
+
+```{r}
+n$nodes %>% 
+  ggplot() +
+  geom_point(aes(x, y, color = cost)) +
+  geom_rect(
+    data = tiles,
+    aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
+    fill = NA,
+    color = "black"
+  ) +
+  geom_point(
+    data = targets,
+    aes(x, y),
+    size = 4, 
+    color = "red"
+  ) +
+  geom_rect(
+    data = xys,
+    aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
+    fill = NA,
+    color = "red"
+  ) +
+  coord_equal() +
+  scale_colour_distiller(palette = "Spectral", type = "div") +
+  labs(x = NULL, y = NULL)
+```
+
+Then we find the node closest to the target and within maximum distance defined by `fudge`.
+
+```{r}
+p <- find.nodes(xys, n$nodes, fudge)
+p
+```
+
+Append this nearest node as column `nodeid` in the points dataframe
+
+```{r}
+points <- cbind(points, p)
+names(points)[dim(points)[2]] <- 'nodeid'
+points
+```
+
+Extract costs of all nodes within region, and set cost to 0 for node nearest to target (`points$upgrades` set to 0 at start of `graph.linkages()`).
+
+```{r}
+nodecosts <- n$nodes$cost
+nodecosts[match(points$nodeid, n$nodes$nodeid)] <- points$upgrades
+head(nodecosts)
+```
+
+Trim the graph again to to only include nodes and edges that are actually reachable within bandwidth (`r bandwidth` m) from the target(s).
+
+```{r}
+n <- trim.along.graph(n$nodes, n$edges, p, bandwidth = bandwidth, cellsize = cellsize, nodecosts = nodecosts, chatter = FALSE)
+```
+
+There are now `r nrow(n$nodes)` nodes and `r nrow(n$edges)` edges.
+
+```{r}
+n$nodes %>% 
+  ggplot() +
+  geom_segment(
+    data = n$edges %>% 
+      left_join(
+        select(n$nodes, node1 = nodeid, x1 = x, y1 = y),
+        by = "node1"
+      ) %>% 
+      left_join(
+        select(n$nodes, node2 = nodeid, x2 = x, y2 = y),
+        by = "node2"
+      ),
+    aes(x = x1, xend = x2, y = y1, yend = y2, color = cost)
+  ) +
+  geom_point(aes(x, y, fill = cost), shape = 21, size = 3) +
+  geom_point(
+    data = targets,
+    aes(x, y),
+    size = 8, 
+    color = "red",
+    shape = 21
+  ) +
+  geom_text(
+    data = targets,
+    aes(x, y, label = "Target"),
+    hjust = 0,
+    nudge_x = 50,
+    color = "red"
+  ) +
+  scale_fill_distiller("node cost", palette = "Spectral", type = "div") +
+  scale_color_distiller("edge cost", palette = "Spectral", type = "div") +
+  labs(x = NULL, y = NULL) +
+  theme_dark()
+```
+
+So now, this returns an edge we didn't have before! The target is no longer at the end of the network. Hmm, must be a problem with trim.graph
+
+## Compare Multiple and Single Targets
+
+```{r}
+targets_2 <- project$scenarios$barriers[[which(project$scenarios$id == 60)]] %>%
+  select(id, x = x_coord, y = y_coord) %>% 
+  mutate(upgrades = 0)
+
+targets_1 <- targets_2[1, ] %>% 
+  mutate(upgrades = 0)
+```
+
+
+
+```{r}
+source = config$tiles$dir         # folder containing tiles
+internode = 200                   # internode interval (gives maximum edge length)
+tilesize = 400                    # size of tiles
+bandwidth = 5000                  # bandwidth (m)
+search = 1.5                      # search distance (multiple of bandwidth)
+cellsize = 30                     # size of cells (m)
+fudge = 75                        # how far (m) do we allow x,ys to be from actual culverts?
+scaleby = 0.001                   # parameter from CAPS LINKAGES; use 0.001
+multiplier = 1000 * 0.2495 * 4.88 # multiply scaled kernels to match AQCONNECT
+```
+
+
+```{r}
+# d_1 <- get.graph.tiles(points = targets_1, bandwidth = bandwidth, search = search, tilesize = tilesize, internode = internode, cellsize = cellsize, fudge = fudge, source = source, upgrades = TRUE, chatter = FALSE)
+# d_2 <- get.graph.tiles(points = targets_2, bandwidth = bandwidth, search = search, tilesize = tilesize, internode = internode, cellsize = cellsize, fudge = fudge, source = source, upgrades = TRUE, chatter = FALSE)
+
+maxdist <- bandwidth * search + internode + fudge   # buffer around points--farthest that kernels can be affected by culvert
+
+d <- lapply(list(targets_1, targets_2), function (targets) {
+  points <- data.frame(targets)
+  
+  xys <- points[, c('x', 'y')]
+  xys <- cbind(xys, xys - maxdist, xys + maxdist)
+  colnames(xys) <- c('x', 'y', 'xmin', 'ymin', 'xmax', 'ymax')
+  tiles <- read.table(paste(source, 'graphtiles.txt', sep = ''), sep = '\t', header = TRUE)
+  
+  # find tiles with our xys + buffer
+  q <- outer(tiles$xmin, xys$xmax, '<=') & outer(tiles$ymin, xys$ymax, '<=') & outer(tiles$xmax, xys$xmin, '>=') & outer(tiles$ymax, xys$ymin, '>=')
+  b <- apply(q, 1, 'any')
+  tiles <- tiles[b,]                                  # these are our tiles
+  
+  f <- paste(source, sprintf('graph%03d%03d.RDS', tiles$row, tiles$col), sep = '')
+  nodes <- edges <- matrix(0, 0, 0)
+  
+  for(i in 1:dim(tiles)[1]) {                         # for each tile,
+    q <- readRDS(f[i])
+    nodes <- rbind(nodes, q[[1]])
+    edges <- rbind(edges, q[[2]])
+  }
+  
+  edges <- unique(edges)      # will have duplicate dangling edges from adjacent tiles
+  
+  n <- trim.graph(nodes, edges, xys, maxdist, points = TRUE, chatter = FALSE)   # trim to circles
+  p <- find.nodes(xys, n$nodes, fudge)
+  points <- cbind(points, p)
+  names(points)[dim(points)[2]] <- 'nodeid'
+  
+  if(upgrades) {              # if using upgraded costs, assign them to the proper culverts
+    nodecosts <- n$nodes$cost
+    nodecosts[match(points$nodeid, n$nodes$nodeid)] <- points$upgrades
+  }
+  else
+    nodecosts <- NULL
+  
+  n$p <- p
+  n$targets <- targets
+  n$nodecosts <- nodecosts
+  n
+})
+
+
+d[[1]]$nodes %>% 
+  ggplot() +
+  geom_point(aes(x, y, color = cost)) +
+  geom_point(
+    data = d[[1]]$targets,
+    aes(x, y),
+    size = 4, 
+    color = "red"
+  ) +
+  coord_equal() +
+  scale_colour_distiller(palette = "Spectral", type = "div") +
+  labs(x = NULL, y = NULL)
+
+d[[2]]$nodes %>% 
+  ggplot() +
+  geom_point(aes(x, y, color = cost)) +
+  geom_point(
+    data = d[[2]]$targets,
+    aes(x, y),
+    size = 4, 
+    color = "red"
+  ) +
+  coord_equal() +
+  scale_colour_distiller(palette = "Spectral", type = "div") +
+  labs(x = NULL, y = NULL)
+
+
+# both have two edges
+d[[1]]$edges %>% filter(node1 == 10205005143 | node2 == 10205005143) # two edges
+d[[2]]$edges %>% filter(node1 == 10205005143 | node2 == 10205005143) # two edges
+
+# trim along each graph
+n <- lapply(d, function (d) {
+  trim.along.graph(d$nodes, d$edges, d$p, bandwidth = bandwidth, cellsize = cellsize, nodecosts = d$nodecosts, chatter = FALSE)
+})
+
+# now scenario has two edges, but second only has one
+# so problem must be in trim.along.graph
+n[[1]]$edges %>% filter(node1 == 10205005143 | node2 == 10205005143) # two edges
+n[[2]]$edges %>% filter(node1 == 10205005143 | node2 == 10205005143) # one edge
+```
+
+Brad takes it from here.

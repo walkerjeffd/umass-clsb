@@ -19,6 +19,8 @@
 # 23 Feb 2018: drop focaledge--I'm not going to use it
 # 14 Mar 2018: add chatter option
 # 19 Mar 2018: add nodecosts option for graph.linkages
+# 20 Nov 2018: Scott found a spectacular little bug: graph.kern needs to be set AFTER the calls to graph.kernel.spread, or it can
+#   be replaced by zero if multiple culverts are exactly the wrong distance apart.
 
 
 
@@ -30,22 +32,15 @@
 
     i <- (1:dim(edges)[1])[!is.na(match(edges$node1, focalnodes))]       #    find row(s) in edges, 1st direction
     if(length(i) > 0) {
-        graph.kern[i] <<- 1
-
         for(j in 1:length(i))                 #   for each edge,
             graph.kernel.spread(i[j], 2, account, nodes = nodes, edges = edges, nodecost = nodecosts)     #    recursively spread in each direction
-    }
-
-    i <- (1:dim(edges)[1])[!is.na(match(edges$node2, focalnodes))]       #    find row(s) in edges, 2nd direction
-    # cat('rows', sprintf("%.0f", edges[i, "node2"]), "\n")
-    if(length(i) > 0) {
         graph.kern[i] <<- 1
-        # cat('i', i, "\n")
-
-        for(j in 1:length(i))          {       #   for each edge,
-          # cat('j', j, i[j], sprintf("%.0f", edges[i[j],"node1"]), sprintf("%.0f", edges[i[j],"node2"]), "\n")
+    }
+    i <- (1:dim(edges)[1])[!is.na(match(edges$node2, focalnodes))]       #    find row(s) in edges, 2nd direction
+    if(length(i) > 0) {
+        for(j in 1:length(i))                 #   for each edge,
             graph.kernel.spread(i[j], 1, account, nodes = nodes, edges = edges, nodecost = nodecosts)     #    recursively spread in each direction
-        }
+        graph.kern[i] <<- 1
     }
 
     edges <- edges[graph.kern != 0,]          # keep only edges we reached
