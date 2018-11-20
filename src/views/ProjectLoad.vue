@@ -13,7 +13,10 @@
           <v-stepper-items>
             <v-stepper-content step="1">
               <div class="mb-2">
-                <upload-button title="Select Project File" @input="setFile"></upload-button>
+                <!-- <upload-button title="Select Project File" @input="setFile"></upload-button> -->
+                <v-file @change="setFile">
+                  <v-btn>Select Project File</v-btn>
+                </v-file>
 
                 <div class="pl-2 pt-3">
                   <div v-if="file">
@@ -68,12 +71,13 @@
 <script>
 import { mapActions } from 'vuex';
 
-import UploadButton from '@/components/UploadButton.vue';
+// import UploadButton from '@/components/UploadButton.vue';
+import VFile from '@outluch/v-file'
 
 export default {
   name: 'project-load',
   components: {
-    UploadButton
+    'v-file': VFile
   },
   data() {
     return {
@@ -108,6 +112,7 @@ export default {
     },
     setFile(file) {
       this.file = file;
+      // console.log(file);
     },
     loadFile(file) {
       const reader = new FileReader();
