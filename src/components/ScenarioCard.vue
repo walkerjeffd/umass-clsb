@@ -274,6 +274,7 @@
 import { mapGetters, mapActions } from 'vuex';
 import generatorics from 'generatorics';
 import download from 'downloadjs';
+import slugify from 'slugify';
 
 import { number } from '@/filters';
 import { MAX_SCENARIOS } from '@/constants';
@@ -490,8 +491,11 @@ export default {
         const barriersCsv = json2csv.parse(barriers, {});
 
         const csv = `# Project Info\n${projectCsv}\n\n# Scenarios List\n${scenariosCsv}\n\n# Barriers List\n${barriersCsv}`;
+        const name = this.project.name || 'aquatic-connectivity-scenario-project';
 
-        download(csv, 'scenarios.csv', 'text/csv');
+        const filename = `${slugify(name, { lower: true })}-scenarios.csv`;
+
+        download(csv, filename, 'text/csv');
       } else {
         alert('No scenarios');
       }
