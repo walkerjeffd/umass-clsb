@@ -7,7 +7,7 @@
       "effect": 19.9634,
       "effect_ln": 3.0428,
       "delta": 360.5709,
-      "type": "culvert",
+      "type": "crossing",
       "lat": 40.7953,
       "lon": -74.2157,
       "node_id": "10658002400"
@@ -19,7 +19,7 @@
       "effect": 638.3811,
       "effect_ln": 6.4605,
       "delta": 4411.366,
-      "type": "culvert",
+      "type": "crossing",
       "lat": 42.7051,
       "lon": -78.3391,
       "node_id": "10647004387"
@@ -31,7 +31,7 @@
       "effect": 12.0389,
       "effect_ln": 2.5679,
       "delta": 334.5829,
-      "type": "culvert",
+      "type": "crossing",
       "lat": 40.7999,
       "lon": -74.2178,
       "node_id": "10658002406"
@@ -43,7 +43,7 @@
       "effect": 1105.7811,
       "effect_ln": 7.0092,
       "delta": 4210.278,
-      "type": "culvert",
+      "type": "crossing",
       "lat": 42.3456,
       "lon": -71.7343,
       "node_id": "10131007346"

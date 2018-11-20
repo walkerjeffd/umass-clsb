@@ -125,4 +125,49 @@ describe('graph', function () {
       expect(out.effect.total).to.be.closeTo(effect.total, 0.01);
     });
   });
+
+  describe('hva scenarios', function () {
+    describe('hva scenario id=2', function () {
+      const {
+        targets, network, output
+      } = require('./data/hva-scenario-2.json');
+
+      const { nodes, edges } = network;
+      const { delta, effect } = output;
+
+      const out = graph.linkages(targets, nodes, edges);
+      it('should reproduce delta and effect for test case', function () {
+        expect(out.delta.total).to.be.closeTo(delta.total, 0.01);
+        expect(out.effect.total).to.be.closeTo(effect.total, 0.01);
+      });
+    });
+    describe('hva scenario id=3', function () {
+      const {
+        targets, network, output
+      } = require('./data/hva-scenario-3.json');
+
+      const { nodes, edges } = network;
+      const { delta, effect } = output;
+
+      const out = graph.linkages(targets, nodes, edges);
+      it('should reproduce delta and effect for test case', function () {
+        expect(out.delta.total).to.be.closeTo(delta.total, 0.01);
+        expect(out.effect.total).to.be.closeTo(effect.total, 0.01);
+      });
+    });
+    describe('hva scenario id=60', function () {
+      const {
+        targets, network, output
+      } = require('./data/hva-scenario-60.json');
+
+      const { nodes, edges } = network;
+      const { delta, effect } = output;
+
+      const out = graph.linkages(targets, nodes, edges);
+      it('should reproduce delta and effect for test case', function () {
+        expect(out.delta.total).to.be.closeTo(delta.total, 0.01);
+        expect(out.effect.total).to.be.closeTo(effect.total, 0.01);
+      });
+    });
+  });
 });

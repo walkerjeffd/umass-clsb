@@ -25,14 +25,14 @@ describe('db', function () {
         return db.getBarriers(barrierIds)
           .then((barriers) => {
             const barrier = barriers[0];
-            expect(barrier).to.be.an('object').that.has.all.keys('id', 'x_coord', 'y_coord', 'effect', 'effect_ln', 'delta', 'type', 'lat', 'lon', 'node_id');
+            expect(barrier).to.be.an('object').that.has.all.keys('id', 'x_coord', 'y_coord', 'effect', 'effect_ln', 'delta', 'type', 'lat', 'lon', 'node_id', 'aquatic', 'surveyed');
             expect(barrier.id).to.be.a('string');
             expect(barrier.x_coord).to.be.a('number');
             expect(barrier.y_coord).to.be.a('number');
             expect(barrier.effect).to.be.a('number');
             expect(barrier.effect_ln).to.be.a('number');
             expect(barrier.delta).to.be.a('number');
-            expect(barrier.type).to.be.oneOf(['culvert', 'dam']);
+            expect(barrier.type).to.be.oneOf(['crossing', 'dam']);
             expect(barrier.lat).to.be.a('number');
             expect(barrier.lon).to.be.a('number');
             expect(barrier.node_id).to.be.a('string');
@@ -54,14 +54,14 @@ describe('db', function () {
         return db.getBarriers(barrierIds)
           .then((barriers) => {
             const barrier = barriers[0];
-            expect(barrier).to.be.an('object').that.has.all.keys('id', 'x_coord', 'y_coord', 'effect', 'effect_ln', 'delta', 'type', 'lat', 'lon', 'node_id');
+            expect(barrier).to.be.an('object').that.has.all.keys('id', 'x_coord', 'y_coord', 'effect', 'effect_ln', 'delta', 'type', 'lat', 'lon', 'node_id', 'aquatic', 'surveyed');
             expect(barrier.id).to.be.a('string');
             expect(barrier.x_coord).to.be.a('number');
             expect(barrier.y_coord).to.be.a('number');
             expect(barrier.effect).to.be.a('number');
             expect(barrier.effect_ln).to.be.a('number');
             expect(barrier.delta).to.be.a('number');
-            expect(barrier.type).to.be.oneOf(['culvert', 'dam']);
+            expect(barrier.type).to.be.oneOf(['crossing', 'dam']);
             expect(barrier.lat).to.be.a('number');
             expect(barrier.lon).to.be.a('number');
             expect(barrier.node_id).to.be.a('string');
