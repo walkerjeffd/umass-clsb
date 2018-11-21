@@ -153,3 +153,38 @@ results_60 <- graph.linkages(scenario_60_barriers, source = "~/Dropbox/SHEDS/cls
 c(results_2$results$delta, results_2$results$effect)
 c(results_3$results$delta, results_3$results$effect)
 c(results_60$results$delta, results_60$results$effect)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# post-update -------------------------------------------------------------
+
+# 13-15 still a problem?
+
+project <- read_json("~/Downloads/hva-analysis.json", simplifyVector = TRUE)
+
+source("load-functions.R")
+
+project <- read_json("~/Downloads/hva-analysis.json", simplifyVector = TRUE)
+
+scenario_13_barriers <- project$scenarios$barriers[[which(project$scenarios$id == 13)]] %>%
+  rename(barrier_id = id, x = x_coord, y = y_coord)
+scenario_14_barriers <- project$scenarios$barriers[[which(project$scenarios$id == 14)]] %>%
+  rename(barrier_id = id, x = x_coord, y = y_coord)
+
+results_13 <- graph.linkages(scenario_13_barriers, source = "~/Dropbox/SHEDS/clsb/data/200/")
+results_14 <- graph.linkages(scenario_14_barriers, source = "~/Dropbox/SHEDS/clsb/data/200/")
+
+c(results_13$results$delta$total, results_13$results$effect$total)
+c(results_14$results$delta$total, results_14$results$effect$total)
+

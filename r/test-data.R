@@ -247,5 +247,56 @@ list(
 
 # hva-scenario-3 ----------------------------------------------------------
 
+project <- read_json("~/Downloads/hva-analysis (2).json", simplifyVector = TRUE)
+targets <- project$scenarios$barriers[[which(project$scenarios$id == 3)]] %>%
+  select(id, x = x_coord, y = y_coord, node_id)
+
+r <- graph.linkages(targets, internode = internode, tilesize = tilesize, bandwidth = bandwidth, search = search, cellsize = cellsize, fudge = fudge, source = source, chatter = FALSE, scaleby = scaleby, write = FALSE, multiplier = multiplier)
+network <- get.graph.tiles(points = targets %>% mutate(upgrades = 0), bandwidth = bandwidth, search = search, tilesize = tilesize, internode = internode, cellsize = cellsize, fudge = fudge, source = source, upgrades = TRUE, chatter = FALSE)
+
+
+list(
+  targets = targets %>%
+    rename(x_coord = x, y_coord = y),
+  network = list(
+    nodes = network$nodes %>%
+      rename(node_id = nodeid) %>%
+      mutate(node_id = sprintf("%.0f", node_id)),
+    edges = network$edges %>%
+      rename(start_id = node1, end_id = node2) %>%
+      mutate(
+        start_id = sprintf("%.0f", start_id),
+        end_id = sprintf("%.0f", end_id)
+      )
+  ),
+  output = r$results
+) %>%
+  write_json("../test/data/hva-scenario-3.json", pretty = TRUE, auto_unbox = TRUE)
+
 # hva-scenario-60 ---------------------------------------------------------
 
+project <- read_json("~/Downloads/hva-analysis (2).json", simplifyVector = TRUE)
+targets <- project$scenarios$barriers[[which(project$scenarios$id == 60)]] %>%
+  select(id, x = x_coord, y = y_coord, node_id)
+
+r <- graph.linkages(targets, internode = internode, tilesize = tilesize, bandwidth = bandwidth, search = search, cellsize = cellsize, fudge = fudge, source = source, chatter = FALSE, scaleby = scaleby, write = FALSE, multiplier = multiplier)
+network <- get.graph.tiles(points = targets %>% mutate(upgrades = 0), bandwidth = bandwidth, search = search, tilesize = tilesize, internode = internode, cellsize = cellsize, fudge = fudge, source = source, upgrades = TRUE, chatter = FALSE)
+
+
+list(
+  targets = targets %>%
+    rename(x_coord = x, y_coord = y),
+  network = list(
+    nodes = network$nodes %>%
+      rename(node_id = nodeid) %>%
+      mutate(node_id = sprintf("%.0f", node_id)),
+    edges = network$edges %>%
+      rename(start_id = node1, end_id = node2) %>%
+      mutate(
+        start_id = sprintf("%.0f", start_id),
+        end_id = sprintf("%.0f", end_id)
+      )
+  ),
+  output = r$results
+) %>%
+  write_json("../test/data/hva-scenario-60.json", pretty = TRUE, auto_unbox = TRUE)
