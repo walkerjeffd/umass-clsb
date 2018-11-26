@@ -136,6 +136,7 @@ describe('graph', function () {
       const { delta, effect } = output;
 
       const out = graph.linkages(targets, nodes, edges);
+
       it('should reproduce delta and effect for test case', function () {
         expect(out.delta.total).to.be.closeTo(delta.total, 0.01);
         expect(out.effect.total).to.be.closeTo(effect.total, 0.01);
@@ -145,6 +146,48 @@ describe('graph', function () {
       const {
         targets, network, output
       } = require('./data/hva-scenario-3.json');
+
+      const { nodes, edges } = network;
+      const { delta, effect } = output;
+
+      const out = graph.linkages(targets, nodes, edges);
+      it('should reproduce delta and effect for test case', function () {
+        expect(out.delta.total).to.be.closeTo(delta.total, 0.01);
+        expect(out.effect.total).to.be.closeTo(effect.total, 0.01);
+      });
+    });
+    describe('hva scenario id=13', function () {
+      const {
+        targets, network, output
+      } = require('./data/hva-scenario-13.json');
+
+      const { nodes, edges } = network;
+      const { delta, effect } = output;
+
+      const out = graph.linkages(targets, nodes, edges);
+      it('should reproduce delta and effect for test case', function () {
+        expect(out.delta.total).to.be.closeTo(delta.total, 0.01);
+        expect(out.effect.total).to.be.closeTo(effect.total, 0.01);
+      });
+    });
+    describe('hva scenario id=14', function () {
+      const {
+        targets, network, output
+      } = require('./data/hva-scenario-14.json');
+
+      const { nodes, edges } = network;
+      const { delta, effect } = output;
+
+      const out = graph.linkages(targets, nodes, edges);
+      it('should reproduce delta and effect for test case', function () {
+        expect(out.delta.total).to.be.closeTo(delta.total, 0.01);
+        expect(out.effect.total).to.be.closeTo(effect.total, 0.01);
+      });
+    });
+    describe('hva scenario id=15', function () {
+      const {
+        targets, network, output
+      } = require('./data/hva-scenario-15.json');
 
       const { nodes, edges } = network;
       const { delta, effect } = output;
