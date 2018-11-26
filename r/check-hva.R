@@ -171,8 +171,6 @@ c(results_60$results$delta, results_60$results$effect)
 
 # 13-15 still a problem?
 
-project <- read_json("~/Downloads/hva-analysis.json", simplifyVector = TRUE)
-
 source("load-functions.R")
 
 project <- read_json("~/Downloads/hva-analysis.json", simplifyVector = TRUE)
