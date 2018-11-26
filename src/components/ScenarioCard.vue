@@ -259,6 +259,13 @@
           <v-icon>save_alt</v-icon> Download Scenarios (CSV)
         </v-btn>
         <v-spacer></v-spacer>
+        <!-- button to update all scenarios (temporary) -->
+        <!-- <v-btn
+          @click="runAllScenarios"
+          small
+          :disabled="scenarios.length === 0">
+          <v-icon>refresh</v-icon> Update All Scenarios
+        </v-btn> -->
         <v-btn
           @click="clearScenarios"
           small
@@ -364,6 +371,10 @@ export default {
       } else {
         this.loadScenario(item);
       }
+    },
+    runAllScenarios() {
+      return this.scenarios
+        .map(s => this.$store.dispatch('runScenario', s));
     },
     createSingleScenario(scenario) {
       if (!scenario || scenario.barriers.length === 0) {
