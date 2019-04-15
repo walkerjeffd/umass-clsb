@@ -34,8 +34,6 @@ import * as d3 from 'd3';
 import { DRAW_MAX_AREA_KM2 } from '@/constants';
 import { number } from '@/filters';
 
-require('leaflet-bing-layer');
-
 export default {
   props: ['type', 'feature'],
   filters: {
@@ -104,7 +102,9 @@ export default {
       'Open Street Map': L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors',
       }).addTo(this.map),
-      'Bing Satellite': L.tileLayer.bing('AvSDmEuhbTKvL0ui4AlHwQNBVuDI2QBBoeODy1vwOz5sW_kDnBx3UMtUxbjsZ3bN')
+      'ESRI World Imagery': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+      })
     };
 
     L.control.layers(basemaps, [], {

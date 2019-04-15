@@ -17,8 +17,6 @@ import 'leaflet-draw';
 import 'leaflet-draw/dist/leaflet.draw.css';
 import * as turf from '@turf/turf';
 
-require('leaflet-bing-layer');
-
 // customize draw toolbar buttons
 L.drawLocal.draw.toolbar.buttons.polygon = 'Draw polygon to select multiple barriers';
 L.drawLocal.draw.toolbar.buttons.rectangle = 'Draw rectangle to select multiple barriers';
@@ -139,7 +137,9 @@ export default {
       'Open Street Map': L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors',
       }),
-      'Bing Satellite': L.tileLayer.bing('AvSDmEuhbTKvL0ui4AlHwQNBVuDI2QBBoeODy1vwOz5sW_kDnBx3UMtUxbjsZ3bN'),
+      'ESRI World Imagery': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+      }),
       'No Basemap': L.tileLayer('').addTo(this.map)
     };
 
