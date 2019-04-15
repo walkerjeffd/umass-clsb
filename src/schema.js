@@ -6,8 +6,8 @@ import { REGION_TYPES } from '@/constants';
 
 const barrierSchema = Joi.object({
   id: Joi.string(),
-  x_coord: Joi.number(),
-  y_coord: Joi.number(),
+  x: Joi.number(),
+  y: Joi.number(),
   effect: Joi.number(),
   effect_ln: Joi.number(),
   delta: Joi.number(),

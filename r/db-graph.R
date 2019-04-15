@@ -21,7 +21,10 @@ nodes <- tiles %>%
   select(nodes) %>%
   unnest(nodes) %>%
   distinct() %>%
-  filter(!duplicated(nodeid))
+  filter(!duplicated(nodeid)) %>%
+  mutate(
+    what = if_else(what == "", NA_character_, what)
+  )
 
 edges <- tiles %>%
   select(edges) %>%
@@ -42,7 +45,7 @@ list(
 nodes %>%
   rename(id = nodeid) %>%
   mutate_at(vars(id), ~ sprintf("%.0f", .)) %>%
-  write_csv("csv/graph-nodes.csv")
+  write_csv("csv/graph-nodes.csv", na = "")
 
 edges %>%
   rename(start_id = node1, end_id = node2) %>%

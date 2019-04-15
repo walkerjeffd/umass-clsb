@@ -56,8 +56,7 @@ graph.linkages
 A single random crossing is first selected from all available barriers.
 
 ```{r}
-set.seed(1234)
-targets <- sample_n(barriers, size = 1)
+targets <- barriers %>% filter(id == "c-180762")
 print(targets)
 ```
 
@@ -83,7 +82,7 @@ search = 1.5                    # search distance (multiple of bandwidth)
 cellsize = 30                   # size of cells (m)
 fudge = 75                      # how far (m) do we allow x,ys to be from actual culverts?
 scaleby = 0.001                 # parameter from CAPS LINKAGES; use 0.001
-multiplier = 1000 * 0.2495 * 24 # multiply scaled kernels to match AQCONNECT
+multiplier = 1000 * 0.2495 * 4.88 # multiply scaled kernels to match AQCONNECT
 ```
 
 First, set the upgrade cost to zero for the target node:
@@ -481,8 +480,7 @@ And this is the result for the given target.
 First select multiple (say, four) barriers at random.
 
 ```{r}
-set.seed(1234)
-targets <- sample_n(barriers, size = 4)
+targets <- barriers %>% filter(id %in% c("c-180762", "c-521524", "c-512676", "c-522168"))
 print(targets)
 ```
 
@@ -509,7 +507,7 @@ search = 1.5                    # search distance (multiple of bandwidth)
 cellsize = 30                   # size of cells (m)
 fudge = 75                      # how far (m) do we allow x,ys to be from actual culverts?
 scaleby = 0.001                 # parameter from CAPS LINKAGES; use 0.001
-multiplier = 1000 * 0.2495 * 24 # multiply scaled kernels to match AQCONNECT
+multiplier = 1000 * 0.2495 * 4.88 # multiply scaled kernels to match AQCONNECT
 
 targets$upgrades <- 0
 ```
@@ -877,4 +875,3 @@ c(delta = sum(targets$delta), effect = sum(targets$effect))
 ```
 
 > If multiple target barriers are selected, the total delta and effect is the sum of the individual effects if no two barriers are located near one another and thus each crossing impacts distinct set of graph edges
-

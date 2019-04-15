@@ -1,5 +1,5 @@
 module.exports = {
-  VERSION: 1,
+  VERSION: 2,
   DRAW_MAX_AREA_KM2: 2000,
   LOCALSTORAGE_PROJECT_KEY: 'clsb-project',
   MAX_SCENARIOS: 2000,

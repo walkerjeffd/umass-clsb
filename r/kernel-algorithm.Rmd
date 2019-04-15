@@ -45,8 +45,7 @@ This document describes the algorithm for computing the resistance kernel and de
 A single random crossing is first selected from all available crossings.
 
 ```{r}
-set.seed(1234)
-targets <- sample_n(barriers, size = 1)
+targets <- barriers %>% filter(id == "c-177097")
 print(targets)
 ```
 
@@ -85,7 +84,8 @@ Now, extract the targets, nodes, and edges data frames.
 
 ```{r}
 targets <- d$targets    # now have nodeids in targets
-nodes <- d$nodes
+nodes <- d$nodes %>% 
+  select(nodeid, x, y, cost)
 edges <- d$edges
 ```
 

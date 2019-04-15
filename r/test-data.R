@@ -28,18 +28,13 @@ scaleby = 0.001                   # parameter from CAPS LINKAGES; use 0.001
 multiplier = 1000 * 0.2495 * 4.88 # multiply scaled kernels to match AQCONNECT
 
 barriers <- tbl(con, "barriers") %>%
-  select(id, x = x_coord, y = y_coord, effect, effect_ln, delta, type, lat, lon) %>%
-  left_join(
-    tbl(con, "barrier_node") %>%
-      select(barrier_id, node_id),
-    by = c("id" = "barrier_id")
-  ) %>%
+  select(id, node_id, x, y, effect, effect_ln, delta, type, lat, lon) %>%
   collect()
 
 # graph-trim-single -------------------------------------------------------
 
 # inputs
-targets <- barriers %>% filter(id == "c-293762")
+targets <- barriers %>% filter(id == "xy3759177679094526")
 targets$upgrades <- 0
 
 # get.graph.tiles() arguments
@@ -82,7 +77,6 @@ trimmed <- trim.along.graph(tiled$nodes, tiled$edges, p, bandwidth = bandwidth, 
 # export with matchin javascript types
 list(
   targets = points %>%
-    rename(x_coord = x, y_coord = y) %>%
     mutate(node_id = sprintf("%.0f", node_id)) %>%
     select(-upgrades, -nodeid),
   input = list(
@@ -114,7 +108,7 @@ list(
 # graph-trim-multiple -----------------------------------------------------
 
 # inputs
-targets <- barriers %>% filter(id %in% c("c-244844", "c-244895", "c-282781", "c-361794"))
+targets <- barriers %>% filter(id %in% c("xy4079987274217816", "xy4079526774215677", "xy4234574771734256", "xy4270499878339084"))
 targets$upgrades <- 0
 
 # get.graph.tiles() arguments
@@ -157,7 +151,6 @@ trimmed <- trim.along.graph(tiled$nodes, tiled$edges, p, bandwidth = bandwidth, 
 # export with matchin javascript types
 list(
   targets = points %>%
-    rename(x_coord = x, y_coord = y) %>%
     mutate(node_id = sprintf("%.0f", node_id)) %>%
     select(-upgrades, -nodeid),
   input = list(
@@ -190,7 +183,7 @@ list(
 # graph-single-effects ----------------------------------------------------
 
 
-targets <- barriers %>% filter(id == "c-177097") %>%
+targets <- barriers %>% filter(id == "xy3817653179407171") %>%
   rename(nodeid = node_id)
 r <- graph.linkages(targets, internode = internode, tilesize = tilesize, bandwidth = bandwidth, search = search, cellsize = cellsize, fudge = fudge, source = source, chatter = FALSE, scaleby = scaleby, write = FALSE, multiplier = multiplier)
 network <- get.graph.tiles(points = targets %>% mutate(upgrades = 0), bandwidth = bandwidth, search = search, tilesize = tilesize, internode = internode, cellsize = cellsize, fudge = fudge, source = source, upgrades = TRUE, chatter = FALSE)
@@ -198,7 +191,7 @@ network <- get.graph.tiles(points = targets %>% mutate(upgrades = 0), bandwidth 
 
 list(
   targets = targets %>%
-    rename(x_coord = x, y_coord = y, node_id = nodeid) %>%
+    rename(node_id = nodeid) %>%
     mutate(node_id = sprintf("%.0f", node_id)),
   network = list(
     nodes = network$nodes %>%
@@ -218,14 +211,13 @@ list(
 
 # hva-scenario-2 ----------------------------------------------------------
 
-targets <- barriers %>% filter(id %in% c("c-695887", "c-695909", "c-695912", "c-695921", "c-695930"))
+targets <- barriers %>% filter(id %in% c("xy4236183373275466", "xy4235822773270851", "xy4236154873266984", "xy4236507073262569", "xy4236508773259631"))
 
 r <- graph.linkages(targets, internode = internode, tilesize = tilesize, bandwidth = bandwidth, search = search, cellsize = cellsize, fudge = fudge, source = source, chatter = FALSE, scaleby = scaleby, write = FALSE, multiplier = multiplier)
 network <- get.graph.tiles(points = targets %>% mutate(upgrades = 0), bandwidth = bandwidth, search = search, tilesize = tilesize, internode = internode, cellsize = cellsize, fudge = fudge, source = source, upgrades = TRUE, chatter = FALSE)
 
 list(
   targets = targets %>%
-    rename(x_coord = x, y_coord = y) %>%
     mutate(node_id = sprintf("%.0f", node_id)),
   network = list(
     nodes = network$nodes %>%
@@ -245,14 +237,13 @@ list(
 
 # hva-scenario-3 ----------------------------------------------------------
 
-targets <- barriers %>% filter(id %in% c("c-695912", "c-695921", "c-695930"))
+targets <- barriers %>% filter(id %in% c("xy4236154873266984", "xy4236507073262569", "xy4236508773259631"))
 
 r <- graph.linkages(targets, internode = internode, tilesize = tilesize, bandwidth = bandwidth, search = search, cellsize = cellsize, fudge = fudge, source = source, chatter = FALSE, scaleby = scaleby, write = FALSE, multiplier = multiplier)
 network <- get.graph.tiles(points = targets %>% mutate(upgrades = 0), bandwidth = bandwidth, search = search, tilesize = tilesize, internode = internode, cellsize = cellsize, fudge = fudge, source = source, upgrades = TRUE, chatter = FALSE)
 
 list(
   targets = targets %>%
-    rename(x_coord = x, y_coord = y) %>%
     mutate(node_id = sprintf("%.0f", node_id)),
   network = list(
     nodes = network$nodes %>%
@@ -272,14 +263,13 @@ list(
 
 # hva-scenario-13 ----------------------------------------------------------
 
-targets <- barriers %>% filter(id %in% c("c-695788", "c-695835", "c-695863", "c-695878", "c-695901"))
+targets <- barriers %>% filter(id %in% c("xy4243196973275060", "xy4243010873265697", "xy4242974473260752", "xy4243072273258641", "xy4242816573249853"))
 
 r <- graph.linkages(targets, internode = internode, tilesize = tilesize, bandwidth = bandwidth, search = search, cellsize = cellsize, fudge = fudge, source = source, chatter = FALSE, scaleby = scaleby, write = FALSE, multiplier = multiplier)
 network <- get.graph.tiles(points = targets %>% mutate(upgrades = 0), bandwidth = bandwidth, search = search, tilesize = tilesize, internode = internode, cellsize = cellsize, fudge = fudge, source = source, upgrades = TRUE, chatter = FALSE)
 
 list(
   targets = targets %>%
-    rename(x_coord = x, y_coord = y) %>%
     mutate(node_id = sprintf("%.0f", node_id)),
   network = list(
     nodes = network$nodes %>%
@@ -298,14 +288,13 @@ list(
 
 # hva-scenario-14 ----------------------------------------------------------
 
-targets <- barriers %>% filter(id %in% c("c-695863", "c-695878", "c-695901"))
+targets <- barriers %>% filter(id %in% c("xy4242974473260752", "xy4243072273258641", "xy4242816573249853"))
 
 r <- graph.linkages(targets, internode = internode, tilesize = tilesize, bandwidth = bandwidth, search = search, cellsize = cellsize, fudge = fudge, source = source, chatter = FALSE, scaleby = scaleby, write = FALSE, multiplier = multiplier)
 network <- get.graph.tiles(points = targets %>% mutate(upgrades = 0), bandwidth = bandwidth, search = search, tilesize = tilesize, internode = internode, cellsize = cellsize, fudge = fudge, source = source, upgrades = TRUE, chatter = FALSE)
 
 list(
   targets = targets %>%
-    rename(x_coord = x, y_coord = y) %>%
     mutate(node_id = sprintf("%.0f", node_id)),
   network = list(
     nodes = network$nodes %>%
@@ -324,14 +313,13 @@ list(
 
 # hva-scenario-15 ----------------------------------------------------------
 
-targets <- barriers %>% filter(id %in% c("c-695788", "c-695835", "c-695863", "c-695878"))
+targets <- barriers %>% filter(id %in% c("xy4243196973275060", "xy4243010873265697", "xy4242974473260752", "xy4243072273258641"))
 
 r <- graph.linkages(targets, internode = internode, tilesize = tilesize, bandwidth = bandwidth, search = search, cellsize = cellsize, fudge = fudge, source = source, chatter = FALSE, scaleby = scaleby, write = FALSE, multiplier = multiplier)
 network <- get.graph.tiles(points = targets %>% mutate(upgrades = 0), bandwidth = bandwidth, search = search, tilesize = tilesize, internode = internode, cellsize = cellsize, fudge = fudge, source = source, upgrades = TRUE, chatter = FALSE)
 
 list(
   targets = targets %>%
-    rename(x_coord = x, y_coord = y) %>%
     mutate(node_id = sprintf("%.0f", node_id)),
   network = list(
     nodes = network$nodes %>%
@@ -351,14 +339,13 @@ list(
 
 # hva-scenario-60 ---------------------------------------------------------
 
-targets <- barriers %>% filter(id %in% c("c-696542", "c-696587"))
+targets <- barriers %>% filter(id %in% c("xy4248734773093429", "xy4249315373076421"))
 
 r <- graph.linkages(targets, internode = internode, tilesize = tilesize, bandwidth = bandwidth, search = search, cellsize = cellsize, fudge = fudge, source = source, chatter = FALSE, scaleby = scaleby, write = FALSE, multiplier = multiplier)
 network <- get.graph.tiles(points = targets %>% mutate(upgrades = 0), bandwidth = bandwidth, search = search, tilesize = tilesize, internode = internode, cellsize = cellsize, fudge = fudge, source = source, upgrades = TRUE, chatter = FALSE)
 
 list(
   targets = targets %>%
-    rename(x_coord = x, y_coord = y) %>%
     mutate(node_id = sprintf("%.0f", node_id)),
   network = list(
     nodes = network$nodes %>%

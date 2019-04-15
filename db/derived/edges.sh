@@ -1,16 +1,13 @@
 #!/bin/bash
-# Import graph edges from csv file to edges table
-# run r/db-graph.R first to generate csv file
-# nodes must already be imported
-# usage: ./edges.sh ../../r/csv/graph-edges.csv
+# Create edges table from edges_csv
+# must run derived/nodes.sh first due to foreign key constraint
+# usage: ./edges.sh
 
 set -eu
 
 . ../../config.sh
 
-FILE=$1
-
-echo Creating schema...
+echo Creating edges table...
 psql -h $SHEDS_CLSB_DB_HOST -p $SHEDS_CLSB_DB_PORT -U $SHEDS_CLSB_DB_USER -d $SHEDS_CLSB_DB_DBNAME -c "
 DROP TABLE IF EXISTS edges;
 CREATE TABLE edges (
@@ -22,11 +19,12 @@ CREATE TABLE edges (
   value REAL,
   geom GEOMETRY(LINESTRING, 5070)
 );
+INSERT INTO edges (start_id, end_id, length, cost, value) (
+  SELECT start_id, end_id, length, cost, value
+  FROM edges_csv
+);
 ALTER TABLE edges ADD CONSTRAINT edges_start_id_end_id_unique UNIQUE (start_id, end_id);
 "
-
-echo Importing "$FILE" to table edges...
-psql -h $SHEDS_CLSB_DB_HOST -p $SHEDS_CLSB_DB_PORT -U $SHEDS_CLSB_DB_USER -d $SHEDS_CLSB_DB_DBNAME -c "\copy edges(start_id, end_id, length, cost, value) FROM '$FILE' WITH CSV HEADER"
 
 echo Setting geom column...
 psql -h $SHEDS_CLSB_DB_HOST -p $SHEDS_CLSB_DB_PORT -U $SHEDS_CLSB_DB_USER -d $SHEDS_CLSB_DB_DBNAME -c "

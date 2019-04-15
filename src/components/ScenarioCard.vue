@@ -53,7 +53,7 @@
         </v-btn>
         <v-spacer></v-spacer>
         <v-btn
-          @click="newScenario()"
+          @click="clearBarriers()"
           small
           :disabled="scenario.barriers.length === 0">
           <v-icon>clear</v-icon> Clear
@@ -364,6 +364,11 @@ export default {
       if (index >= 0) {
         this.scenario.barriers.splice(index, 1);
       }
+    },
+    clearBarriers() {
+      this.batch.choose = null;
+      this.batch.show = false;
+      this.newScenario();
     },
     selectRow(item) {
       if (this.scenario && this.scenario.id === item.id) {
