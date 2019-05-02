@@ -8,14 +8,68 @@
       <v-btn icon to="/">
         <v-icon>home</v-icon>
       </v-btn>
-      <v-toolbar-title v-text="title"></v-toolbar-title>
+      <v-toolbar-title>
+        <span class="hidden-md-and-down">Aquatic Connectivity Scenario Analysis Tool</span>
+        <span class="hidden-lg-and-up">Aquatic Connectivity Scenario Tool</span>
+      </v-toolbar-title>
       <v-spacer></v-spacer>
-      <v-btn to="/tutorial" flat>
-        <v-icon left>assignment</v-icon> Tutorial
-      </v-btn>
-      <v-btn @click="dialog.about = !dialog.about" flat>
-        <v-icon left>help</v-icon> About
-      </v-btn>
+      <v-toolbar-items class="hidden-sm-and-down">
+        <v-btn to="/" flat>
+          <v-icon left>home</v-icon> Home
+        </v-btn>
+        <v-menu offset-y>
+          <v-btn slot="activator" flat>
+            <v-icon left>class</v-icon>
+            <span>Projects</span>
+            <v-icon dark>arrow_drop_down</v-icon>
+          </v-btn>
+
+          <v-list>
+            <v-list-tile to="/project/new">
+              <v-list-tile-title><v-icon left>create</v-icon> New Project</v-list-tile-title>
+            </v-list-tile>
+            <v-list-tile to="/project/load">
+              <v-list-tile-title><v-icon left>unarchive</v-icon> Load Project</v-list-tile-title>
+            </v-list-tile>
+          </v-list>
+        </v-menu>
+        <v-btn to="/tutorial" flat>
+          <v-icon left>assignment</v-icon> Tutorial
+        </v-btn>
+        <v-btn @click="dialog.about = !dialog.about" flat>
+          <v-icon left>help</v-icon> About
+        </v-btn>
+      </v-toolbar-items>
+      <v-menu class="hidden-md-and-up" offset-y>
+        <v-toolbar-side-icon slot="activator"></v-toolbar-side-icon>
+        <v-list>
+          <v-list-tile to="/">
+            <v-list-tile-content>
+              <v-list-tile-title>Home</v-list-tile-title>
+            </v-list-tile-content>
+          </v-list-tile>
+          <v-list-tile to="/project/new">
+            <v-list-tile-content>
+              <v-list-tile-title>New Project</v-list-tile-title>
+            </v-list-tile-content>
+          </v-list-tile>
+          <v-list-tile to="/project/load">
+            <v-list-tile-content>
+              <v-list-tile-title>Load Project</v-list-tile-title>
+            </v-list-tile-content>
+          </v-list-tile>
+          <v-list-tile to="/tutorial">
+            <v-list-tile-content>
+              <v-list-tile-title>Tutorial</v-list-tile-title>
+            </v-list-tile-content>
+          </v-list-tile>
+          <v-list-tile @click="dialog.about = !dialog.about">
+            <v-list-tile-content>
+              <v-list-tile-title>About</v-list-tile-title>
+            </v-list-tile-content>
+          </v-list-tile>
+        </v-list>
+      </v-menu>
     </v-toolbar>
     <v-content>
       <router-view/>
@@ -92,8 +146,7 @@ export default {
     return {
       dialog: {
         about: false
-      },
-      title: 'Aquatic Connectivity Scenario Analysis Tool'
+      }
     };
   }
 };
