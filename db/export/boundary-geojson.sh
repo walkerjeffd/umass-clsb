@@ -10,5 +10,5 @@ FILE=$1
 . ../../config.sh
 
 echo -n Exporting "$FILE"...
-ogr2ogr -f "GeoJSON" "$FILE" "PG:dbname=$SHEDS_CLSB_DB_CONNSTRING" -t_srs EPSG:4326 -lco SIGNIFICANT_FIGURES=8 -simplify 0.001 boundary
+ogr2ogr -f "GeoJSON" "$FILE" "PG:$SHEDS_CLSB_DB_CONNSTRING" -t_srs EPSG:4326 -lco SIGNIFICANT_FIGURES=8 -simplify 0.001 boundary
 echo done
