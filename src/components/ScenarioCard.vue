@@ -457,10 +457,6 @@ export default {
           {
             label: 'author',
             value: this.project.author
-          },
-          {
-            label: 'created',
-            value: (new Date(this.project.created)).toLocaleString()
           }
         ];
 
@@ -476,9 +472,14 @@ export default {
           });
         }
 
+        project.push({
+          label: 'created',
+          value: (new Date(this.project.created)).toLocaleString()
+        });
+
         const scenarios = this.scenarios.map(d => { // eslint-disable-line
           return {
-            id: d.id,
+            scenario_id: d.id,
             n_barriers: d.barriers.length,
             connectivity_gain: d.results.delta,
             restoration_potential: d.results.effect

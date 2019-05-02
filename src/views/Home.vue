@@ -214,6 +214,19 @@
                   </v-card>
                 </v-hover>
               </v-flex>
+              <v-flex xs12 md6>
+                <v-hover>
+                  <v-card
+                    slot-scope="{ hover }"
+                    :class="`elevation-${hover ? 12 : 2}`"
+                    to="/tutorial">
+                    <v-toolbar dark color="blue">
+                      <h3>Tutorial</h3>
+                    </v-toolbar>
+                    <v-card-text>Read the tutorial and learn how to use this application.</v-card-text>
+                  </v-card>
+                </v-hover>
+              </v-flex>
               <v-flex xs12 md6 v-if="hasLocalProject">
                 <v-hover>
                   <v-card
@@ -224,19 +237,6 @@
                       <h3>Resume Project</h3>
                     </v-toolbar>
                     <v-card-text>Pick up where you left off on your last project.</v-card-text>
-                  </v-card>
-                </v-hover>
-              </v-flex>
-              <v-flex xs12 md6>
-                <v-hover>
-                  <v-card
-                    slot-scope="{ hover }"
-                    :class="`elevation-${hover ? 12 : 2}`"
-                    @click.native="loadDemoProject" style="cursor:pointer">
-                    <v-toolbar dark color="blue">
-                      <h3>Demo Project</h3>
-                    </v-toolbar>
-                    <v-card-text>Load the demo project.</v-card-text>
                   </v-card>
                 </v-hover>
               </v-flex>

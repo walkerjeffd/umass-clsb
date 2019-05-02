@@ -10,8 +10,11 @@
       </v-btn>
       <v-toolbar-title v-text="title"></v-toolbar-title>
       <v-spacer></v-spacer>
-      <v-btn icon @click="dialog.about = !dialog.about">
-        <v-icon>help</v-icon>
+      <v-btn to="/tutorial" flat>
+        <v-icon left>assignment</v-icon> Tutorial
+      </v-btn>
+      <v-btn @click="dialog.about = !dialog.about" flat>
+        <v-icon left>help</v-icon> About
       </v-btn>
     </v-toolbar>
     <v-content>
@@ -76,7 +79,7 @@
       </v-dialog>
     </v-content>
     <v-footer app class="justify-center" fixed style="min-height:28px">
-      <span>&copy; 2018 SHEDS Development Team</span>
+      <span>&copy; 2018 SHEDS Development Team. Developed by <a href="https://walkerenvres.com" target="_blank">Walker Environmental Research LLC</a></span>
     </v-footer>
   </v-app>
 </template>
