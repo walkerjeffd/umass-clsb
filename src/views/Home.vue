@@ -125,7 +125,10 @@
       max-width="1000">
       <v-card>
         <v-toolbar color="white">
-          <h1 class="headline">Welcome to the Aquatic Connectivity Scenario Analysis Tool</h1>
+          <h1 class="headline">
+            <span class="hidden-sm-and-down">Welcome to the Aquatic Connectivity Scenario Analysis Tool</span>
+            <span class="hidden-md-and-up">Welcome to the Aquatic Connectivity Tool</span>
+          </h1>
         </v-toolbar>
 
         <v-card-text>
