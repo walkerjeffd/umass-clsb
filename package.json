@@ -8,7 +8,8 @@
     "test": "mocha --exit",
     "lint": "vue-cli-service lint",
     "api": "cd api && nodemon index.js",
-    "deploy": "npm run build && scp -r -C dist/* jeff@ecosheds.org:/conte/www/apps/clsb-dev/"
+    "deploy": "npm run build && scp -r -C dist/* jeff@ecosheds.org:/conte/www/static/clsb/",
+    "deploy:dev": "npm run build && scp -r -C dist/* jeff@ecosheds.org:/conte/www/static/clsb-dev/"
   },
   "dependencies": {
     "@mapbox/geojson-area": "^0.2.2",

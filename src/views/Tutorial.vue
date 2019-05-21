@@ -86,27 +86,27 @@
               The map tools are located in the upper-right corner of the interface and include zoom in/out, show/hide basemap and static layers, legend for barrier type, and drawing tools for selecting multiple barriers using a rectangle or polygon.
             </p>
 
-            <h3>Controls Box</h3>
+            <h3>Controls and Settings Box</h3>
             <p>
-              The Controls box contains three tabs for the Project, Scenarios, and Map Settings.
+              The Controls and Settings box contains three tabs for the Project, Scenarios, and Map Settings.
             </p>
 
             <p>
               The <strong>Project</strong> tab displays the project information (i.e., name, description, author, and region), and provides buttons to save/export the project, create a new project, or load an existing project.
               The process for saving and loading projects is described below.
             </p>
-            <v-img src="img/tutorial/box-project.png" alt="Project tab of the controls box" class="img-tutorial"></v-img>
+            <v-img src="img/tutorial/box-project.png" alt="Project tab of the controls and settings box" class="img-tutorial"></v-img>
 
             <p>
               The <strong>Scenarios</strong> tab is used to create new scenarios, view and compare a list of existing scenarios, and download the scenario results for further analysis.
               The process for creating new scenarios is described below.
             </p>
-            <v-img src="img/tutorial/box-scenarios.png" alt="Scenario tab of the controls box" class="img-tutorial"></v-img>
+            <v-img src="img/tutorial/box-scenarios.png" alt="Scenario tab of the controls and settings box" class="img-tutorial"></v-img>
 
             <p>
               The <strong>Map Settings</strong> tab contains options for changing how the barriers are displayed on the map including which variable is used to color code the barriers, and toggle switches to highlight barriers that are surveyed crossings or dams.
             </p>
-            <v-img src="img/tutorial/box-map-settings.png" alt="Map Settings tab of the controls box" class="img-tutorial"></v-img>
+            <v-img src="img/tutorial/box-map-settings.png" alt="Map Settings tab of the controls and settings box" class="img-tutorial"></v-img>
 
           </v-stepper-content>
 
@@ -126,6 +126,7 @@
               <strong>Restoration Potential</strong> takes into account both the change in aquatic connectivity (Connectivity Gain) and habitat quality (as expressed by an Index of Ecological Integrity).
             </p>
             <p>
+              Connectivity Gain and Restoration Potential are expressed in units that are unique to the Critical Linkage analysis and are of little use except when used to compare scenarios.
               Multiple scenarios can be compared and ranked according to each of these two metrics to determine which set of barriers provide the greatest ecological benefits if replaced or removed.
             </p>
           </v-stepper-content>
@@ -133,7 +134,7 @@
           <v-stepper-step editable step="5">Create a New Scenario</v-stepper-step>
           <v-stepper-content step="5">
             <p>
-              To create a new scenario, first select the <strong>Scenarios</strong> tab in the controls box.
+              To create a new scenario, first select the <strong>Scenarios</strong> tab in the controls and settings box.
             </p>
             <p>
               Next click on one or more barriers on the map to add them to the new scenario. When a barrier is added, it will be highlighted on the map with a red circle, and the ID will be listed in the Scenarios box.
@@ -179,10 +180,19 @@
             <p>
               After the scenarios have all completed, you can compare each unique subset based on their connectivity gain or restoration potential.
               Select a row from the <strong>Scenarios List</strong> to view the barriers associated with that scenario.
-              By default, the scenarios list will be sorted by Restoration Potential, with the first row having the highest value. Click this row to see which subset of scenarios have the highest restoration potential.
+              By default, the scenarios list will be sorted by Restoration Potential, with the first row having the highest value.
+              Click this row to see which subset of scenarios have the highest restoration potential.
             </p>
 
             <v-img src="img/tutorial/scenarios-batch-results.png" alt="Results of subset scenarios" class="img-tutorial"></v-img>
+
+            <p>
+              To sort the scenarios by Connectivity Gain (or any other column), simply click the header for that column, which first sorts in ascending order.
+              Click the column header again to sort in descending order. A small arrow will appear beside the column header to indicate
+              whether the column is sorted in ascending (up arrow) or descending (down arrow) order.
+            </p>
+
+            <v-img src="img/tutorial/scenarios-batch-sort.png" alt="Sort scenarios list" class="img-tutorial"></v-img>
           </v-stepper-content>
 
           <v-stepper-step editable step="7">Exporting the Scenario Results</v-stepper-step>
@@ -215,7 +225,7 @@
               Each project can be saved to a text file, which can then be loaded at a later date or sent to other users.
             </p>
             <p>
-              To save a project, click the <strong>Save/Export Project</strong> button on the <strong>Project</strong> tab of the controls box, and then click the <strong>Download Project File</strong> button in the dialog box.
+              To save a project, click the <strong>Save/Export Project</strong> button on the <strong>Project</strong> tab of the controls and settings box, and then click the <strong>Download Project File</strong> button in the dialog box.
               The browser will then download a text file in <a href="https://www.json.org/" target="_blank">JSON format</a>.
             </p>
             <p>
