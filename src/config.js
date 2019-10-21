@@ -6,7 +6,7 @@ module.exports = {
   },
   production: {
     api: {
-      url: 'http://ecosheds.org:8030/'
+      url: 'https://ecosheds.org/api/aq-connectivity-tool/'
     }
   }
 };
