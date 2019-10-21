@@ -165,11 +165,11 @@ export default {
     ];
     const overlayLayers = {};
     overlays.forEach((d) => {
-      const key = '<img src="http://ecosheds.org:8080/geoserver/wms?' +
+      const key = '<img src="https://ecosheds.org/geoserver/wms?' +
         'REQUEST=GetLegendGraphic&VERSION=1.0.0&FORMAT=image/png' +
         `&WIDTH=20&HEIGHT=20&LAYER=${d.layer}` +
         `&LEGEND_OPTIONS=fontAntiAliasing:true;forceLabels:off"> ${d.label}`;
-      overlayLayers[key] = L.tileLayer.wms('http://ecosheds.org:8080/geoserver/wms', {
+      overlayLayers[key] = L.tileLayer.wms('https://ecosheds.org/geoserver/wms', {
         layers: d.layer,
         format: 'image/png',
         transparent: true,
