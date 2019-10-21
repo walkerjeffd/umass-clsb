@@ -2,7 +2,7 @@ const webpack = require('webpack');
 
 module.exports = {
   baseUrl: process.env.NODE_ENV === 'production'
-    ? '/clsb-dev/'
+    ? '/aq-connectivity-tool/'
     : '/',
   configureWebpack: {
     plugins: [
